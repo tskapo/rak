@@ -1,3 +1,76 @@
 {
-  "_comment": "Traductions françaises — langue par défaut de Räk."
+  "lang": {
+    "picker": {
+      "title": "Choisissez votre langue",
+      "subtitle": "Vous pourrez la modifier depuis la barre latérale."
+    },
+    "fr": "Français",
+    "en": "English",
+    "ka": "ქართული"
+  },
+  "sidebar": {
+    "favorites": "Favoris",
+    "devices":   "Appareils",
+    "recents":   "Récents"
+  },
+  "browser": {
+    "views": {
+      "list":   "Liste",
+      "column": "Colonne",
+      "detail": "Détail"
+    },
+    "sort": {
+      "name": "Nom",
+      "date": "Modifié",
+      "size": "Taille",
+      "type": "Type",
+      "asc":  "Croissant",
+      "desc": "Décroissant"
+    },
+    "toolbar": {
+      "tags":        "Tags",
+      "rescan":      "Réindexer",
+      "scanning":    "Indexation…",
+      "scanned_ago": "il y a"
+    },
+    "labels": {
+      "name":  "Nom",
+      "tags":  "Étiquettes",
+      "size":  "Taille",
+      "date":  "Modifié",
+      "type":  "Type"
+    },
+    "empty": "Ce dossier est vide."
+  },
+  "preview": {
+    "title": "Aperçu"
+  },
+  "disk": {
+    "label": {
+      "title":            "Étiquette du disque",
+      "name_placeholder": "Surnom (ex : NAS Maison)"
+    }
+  },
+  "tags": {
+    "title":           "Étiquettes",
+    "manage":          "Gérer les étiquettes…",
+    "manager_title":   "Gérer les étiquettes",
+    "new_placeholder": "Nom de l'étiquette",
+    "color_label":     "Couleur"
+  },
+  "status": {
+    "items":         "{n} élément(s)",
+    "view_restored": "Vue restaurée : {view} / {sort}"
+  },
+  "actions": {
+    "open":      "Ouvrir",
+    "preview":   "Aperçu rapide",
+    "tag":       "Étiqueter…",
+    "copy_path": "Copier le chemin",
+    "delete":    "Supprimer",
+    "cancel":    "Annuler",
+    "ok":        "OK",
+    "close":     "Fermer",
+    "save":      "Enregistrer"
+  }
 }

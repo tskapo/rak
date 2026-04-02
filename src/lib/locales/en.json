@@ -1,3 +1,76 @@
 {
-  "_comment": "English translations for Räk."
+  "lang": {
+    "picker": {
+      "title": "Choose your language",
+      "subtitle": "You can change this later in the sidebar."
+    },
+    "fr": "Français",
+    "en": "English",
+    "ka": "ქართული"
+  },
+  "sidebar": {
+    "favorites": "Favorites",
+    "devices":   "Devices",
+    "recents":   "Recents"
+  },
+  "browser": {
+    "views": {
+      "list":   "List",
+      "column": "Column",
+      "detail": "Detail"
+    },
+    "sort": {
+      "name": "Name",
+      "date": "Modified",
+      "size": "Size",
+      "type": "Type",
+      "asc":  "Ascending",
+      "desc": "Descending"
+    },
+    "toolbar": {
+      "tags":         "Tags",
+      "rescan":       "Rescan",
+      "scanning":     "Scanning…",
+      "scanned_ago":  "ago"
+    },
+    "labels": {
+      "name":  "Name",
+      "tags":  "Labels",
+      "size":  "Size",
+      "date":  "Modified",
+      "type":  "Type"
+    },
+    "empty": "This folder is empty."
+  },
+  "preview": {
+    "title": "Preview"
+  },
+  "disk": {
+    "label": {
+      "title":            "Disk label",
+      "name_placeholder": "Nickname (e.g. Home NAS)"
+    }
+  },
+  "tags": {
+    "title":            "Labels",
+    "manage":           "Manage labels…",
+    "manager_title":    "Manage labels",
+    "new_placeholder":  "Label name",
+    "color_label":      "Color"
+  },
+  "status": {
+    "items":         "{n} items",
+    "view_restored": "View restored: {view} / {sort}"
+  },
+  "actions": {
+    "open":    "Open",
+    "preview": "Quick look",
+    "tag":     "Label…",
+    "copy_path": "Copy path",
+    "delete":  "Delete",
+    "cancel":  "Cancel",
+    "ok":      "OK",
+    "close":   "Close",
+    "save":    "Save"
+  }
 }

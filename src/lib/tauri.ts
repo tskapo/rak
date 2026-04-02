@@ -22,6 +22,27 @@ export interface FolderPrefs {
   sortDir:  'asc' | 'desc'
 }
 
+export interface AppPrefs {
+  theme:          'light' | 'dark' | 'system'
+  locale:         'fr' | 'en' | 'ka'
+  uiScale:        number
+  watchRecursive: boolean
+  /** True on first launch — frontend shows the language picker before the app. */
+  firstLaunch:    boolean
+}
+
+export interface DiskLabel {
+  path:       string
+  color:      string
+  customName?: string
+}
+
+export interface Tag {
+  id:    number
+  name:  string
+  color: string
+}
+
 /** Returned by `listDir` — entries plus cache metadata. */
 export interface DirResult {
   entries:   FileEntry[]
@@ -130,4 +151,98 @@ export async function getRecents(limit: number): Promise<FileEntry[]> {
  */
 export async function addRecent(entry: FileEntry): Promise<void> {
   return invoke('add_recent', { entry })
+}
+
+// ── App preferences commands ──────────────────────────────────────────────────
+
+/**
+ * Return all global application preferences with defaults applied.
+ *
+ * @throws string — if the database query fails
+ */
+export async function getAppPrefs(): Promise<AppPrefs> {
+  return invoke('get_app_prefs')
+}
+
+/**
+ * Persist a single global preference by key.
+ *
+ * Keys: `"theme"` | `"locale"` | `"ui_scale"` | `"watch_recursive"`
+ *
+ * @throws string — if the database write fails
+ */
+export async function saveAppPref(key: string, value: string): Promise<void> {
+  return invoke('save_app_pref', { key, value })
+}
+
+// ── Tag commands ──────────────────────────────────────────────────────────────
+
+/**
+ * Return all user-defined tags, sorted alphabetically.
+ *
+ * @throws string — if the database query fails
+ */
+export async function getTags(): Promise<Tag[]> {
+  return invoke('get_tags')
+}
+
+/**
+ * Create a new tag with the given name and hex color.
+ *
+ * @returns the created tag including its auto-generated `id`
+ * @throws string — if the name already exists (UNIQUE constraint)
+ */
+export async function createTag(name: string, color: string): Promise<Tag> {
+  return invoke('create_tag', { name, color })
+}
+
+/**
+ * Delete the tag with the given `id`.
+ *
+ * Cascades automatically to all file–tag associations.
+ *
+ * @throws string — if the database write fails
+ */
+export async function deleteTag(id: number): Promise<void> {
+  return invoke('delete_tag', { id })
+}
+
+/**
+ * Return all tags assigned to the file or folder at `path`.
+ *
+ * @throws string — if the database query fails
+ */
+export async function getFileTags(path: string): Promise<Tag[]> {
+  return invoke('get_file_tags', { path })
+}
+
+/**
+ * Replace the full tag set for the file at `path` with `tagIds`.
+ *
+ * Pass an empty array to remove all tags.
+ *
+ * @throws string — if the database write fails
+ */
+export async function setFileTags(path: string, tagIds: number[]): Promise<void> {
+  return invoke('set_file_tags', { path, tagIds })
+}
+
+// ── Disk label commands ───────────────────────────────────────────────────────
+
+/**
+ * Return the label for the mounted volume at `path`, or `null` if none is set.
+ *
+ * @throws string — if the database query fails
+ */
+export async function getDiskLabel(path: string): Promise<DiskLabel | null> {
+  return invoke('get_disk_label', { path })
+}
+
+/**
+ * Persist (or update) the label for the mounted volume described by `label`.
+ *
+ * @throws string — if the database write fails
+ */
+export async function saveDiskLabel(label: DiskLabel): Promise<void> {
+  return invoke('save_disk_label', { label })
 }

@@ -37,9 +37,10 @@ pub fn run() {
             let prefs = tauri::async_runtime::block_on(cache::get_app_prefs(&pool))
                 .unwrap_or_else(|_| cache::AppPrefs {
                     theme:           "system".to_string(),
-                    locale:          "fr".to_string(),
+                    locale:          "en".to_string(),
                     ui_scale:        1.0,
                     watch_recursive: false,
+                    first_launch:    true,
                 });
 
             // Determine the best startup path (last visited or home) then kick off
@@ -67,14 +68,27 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            // Filesystem
             commands::fs::list_dir,
             commands::fs::get_metadata,
             commands::fs::read_file_chunk,
             commands::fs::rescan_dir,
+            // Folder + app preferences
             commands::prefs::get_folder_prefs,
             commands::prefs::save_folder_prefs,
+            commands::prefs::get_app_prefs,
+            commands::prefs::save_app_pref,
+            // Recents
             commands::recent::get_recents,
             commands::recent::add_recent,
+            // Tags + disk labels
+            commands::tags::get_tags,
+            commands::tags::create_tag,
+            commands::tags::delete_tag,
+            commands::tags::get_file_tags,
+            commands::tags::set_file_tags,
+            commands::tags::get_disk_label,
+            commands::tags::save_disk_label,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");

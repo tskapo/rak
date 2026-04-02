@@ -1,10 +1,11 @@
-// Commandes Tauri pour les préférences par dossier.
+// Commandes Tauri pour les préférences par dossier et les préférences globales de l'application.
 // get_folder_prefs / save_folder_prefs : view_mode, sort_by, sort_dir par chemin.
-// Les préférences globales (thème, locale, ui_scale, watch_recursive) sont dans l'issue 6.
+// get_app_prefs / save_app_pref : clé/valeur globaux (theme, locale, ui_scale, watch_recursive).
+// La langue et le thème sont stockés en SQLite — indépendants de l'OS et de localStorage.
 
 use tauri::State;
 
-use crate::services::cache::{self, FolderPrefs};
+use crate::services::cache::{self, AppPrefs, FolderPrefs};
 use crate::AppState;
 
 // ── Commands ──────────────────────────────────────────────────────────────────
@@ -33,6 +34,34 @@ pub async fn save_folder_prefs(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     cache::save_folder_prefs(&state.db, &prefs)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+// ── App preferences ───────────────────────────────────────────────────────────
+
+/// Return all global application preferences with defaults applied.
+///
+/// Defaults: theme = "system", locale = "fr", ui_scale = 1.0, watch_recursive = false.
+#[tauri::command]
+pub async fn get_app_prefs(state: State<'_, AppState>) -> Result<AppPrefs, String> {
+    cache::get_app_prefs(&state.db)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Persist a single global preference by key.
+///
+/// Reserved keys: `"theme"` (`"light"` | `"dark"` | `"system"`),
+/// `"locale"` (`"fr"` | `"en"` | `"ka"`), `"ui_scale"` (float string),
+/// `"watch_recursive"` (`"true"` | `"false"`).
+#[tauri::command]
+pub async fn save_app_pref(
+    key:   String,
+    value: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    cache::save_app_pref(&state.db, &key, &value)
         .await
         .map_err(|e| e.to_string())
 }

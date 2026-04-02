@@ -37,6 +37,9 @@ pub struct AppPrefs {
     /// Watch directories recursively (true) or only the immediate dir (false).
     /// Defaults to false — safer on large NAS trees.
     pub watch_recursive:  bool,
+    /// True on first launch — the frontend shows a language picker before the app.
+    /// Set to false after the user selects a locale.
+    pub first_launch:     bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -290,9 +293,10 @@ pub async fn get_app_prefs(pool: &SqlitePool) -> Result<AppPrefs, sqlx::Error> {
         .await?;
 
     let mut theme           = "system".to_string();
-    let mut locale          = "fr".to_string();
+    let mut locale          = "en".to_string();
     let mut ui_scale        = 1.0_f32;
     let mut watch_recursive = false;
+    let mut first_launch    = true;
 
     for row in rows {
         let key: String = row.get("key");
@@ -302,11 +306,12 @@ pub async fn get_app_prefs(pool: &SqlitePool) -> Result<AppPrefs, sqlx::Error> {
             "locale"          => locale          = val,
             "ui_scale"        => ui_scale        = val.parse().unwrap_or(1.0),
             "watch_recursive" => watch_recursive = val == "true",
+            "first_launch"    => first_launch    = val != "false",
             _                 => {}
         }
     }
 
-    Ok(AppPrefs { theme, locale, ui_scale, watch_recursive })
+    Ok(AppPrefs { theme, locale, ui_scale, watch_recursive, first_launch })
 }
 
 /// Persist a single app preference key/value pair.

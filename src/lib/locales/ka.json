@@ -1,3 +1,76 @@
 {
-  "_comment": "ქართული თარგმანები — Georgian translations for Räk."
+  "lang": {
+    "picker": {
+      "title": "აირჩიეთ ენა",
+      "subtitle": "შეგიძლიათ შეცვალოთ გვერდითა ზოლიდან."
+    },
+    "fr": "Français",
+    "en": "English",
+    "ka": "ქართული"
+  },
+  "sidebar": {
+    "favorites": "ფავორიტები",
+    "devices":   "მოწყობილობები",
+    "recents":   "ბოლო"
+  },
+  "browser": {
+    "views": {
+      "list":   "სია",
+      "column": "სვეტი",
+      "detail": "დეტალი"
+    },
+    "sort": {
+      "name": "სახელი",
+      "date": "თარიღი",
+      "size": "ზომა",
+      "type": "ტიპი",
+      "asc":  "ზრდადი",
+      "desc": "კლებადი"
+    },
+    "toolbar": {
+      "tags":        "ტეგები",
+      "rescan":      "სკანირება",
+      "scanning":    "სკანირება…",
+      "scanned_ago": "წინ"
+    },
+    "labels": {
+      "name":  "სახელი",
+      "tags":  "ეტიკეტები",
+      "size":  "ზომა",
+      "date":  "თარიღი",
+      "type":  "ტიპი"
+    },
+    "empty": "საქაღალდე ცარიელია."
+  },
+  "preview": {
+    "title": "გადახედვა"
+  },
+  "disk": {
+    "label": {
+      "title":            "დისკის ეტიკეტი",
+      "name_placeholder": "მეტსახელი (მაგ. სახლის NAS)"
+    }
+  },
+  "tags": {
+    "title":           "ეტიკეტები",
+    "manage":          "ეტიკეტების მართვა…",
+    "manager_title":   "ეტიკეტების მართვა",
+    "new_placeholder": "ეტიკეტის სახელი",
+    "color_label":     "ფერი"
+  },
+  "status": {
+    "items":         "{n} ელემენტი",
+    "view_restored": "ხედი აღდგენილია: {view} / {sort}"
+  },
+  "actions": {
+    "open":      "გახსნა",
+    "preview":   "სწრაფი გადახედვა",
+    "tag":       "ეტიკეტი…",
+    "copy_path": "გზის კოპირება",
+    "delete":    "წაშლა",
+    "cancel":    "გაუქმება",
+    "ok":        "OK",
+    "close":     "დახურვა",
+    "save":      "შენახვა"
+  }
 }
