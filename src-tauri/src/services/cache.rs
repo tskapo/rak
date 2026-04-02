@@ -31,9 +31,12 @@ pub struct FolderPrefs {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppPrefs {
-    pub theme:    String,
-    pub locale:   String,
-    pub ui_scale: f32,
+    pub theme:            String,
+    pub locale:           String,
+    pub ui_scale:         f32,
+    /// Watch directories recursively (true) or only the immediate dir (false).
+    /// Defaults to false — safer on large NAS trees.
+    pub watch_recursive:  bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -121,10 +124,61 @@ pub async fn upsert_file(pool: &SqlitePool, entry: &FileEntry, indexed_at: i64) 
     Ok(())
 }
 
+/// Return a single cached entry by exact path, or None if not present.
+pub async fn get_file(pool: &SqlitePool, path: &str) -> Result<Option<FileEntry>, sqlx::Error> {
+    let row = sqlx::query(
+        "SELECT path, name, is_dir, size, modified_at, mime_type
+         FROM   file_cache
+         WHERE  path = ?",
+    )
+    .bind(path)
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row.map(|r| FileEntry {
+        path:        r.get("path"),
+        name:        r.get("name"),
+        is_dir:      r.get("is_dir"),
+        size:        r.get("size"),
+        modified_at: r.get("modified_at"),
+        mime_type:   r.get("mime_type"),
+    }))
+}
+
+/// Return the most recent `indexed_at` timestamp among direct children of `dir_path`.
+/// Returns None if the directory has no cached entries.
+pub async fn get_dir_indexed_at(pool: &SqlitePool, dir_path: &str) -> Result<Option<i64>, sqlx::Error> {
+    let pattern = format!("{}/%", dir_path);
+    let exclude  = format!("{}/%/%", dir_path);
+
+    let row = sqlx::query(
+        "SELECT MAX(indexed_at) AS ts FROM file_cache WHERE path LIKE ? AND path NOT LIKE ?",
+    )
+    .bind(&pattern)
+    .bind(&exclude)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(row.get("ts"))
+}
+
 /// Remove a file entry from the cache (e.g. after deletion detected by watcher).
 pub async fn remove_file(pool: &SqlitePool, path: &str) -> Result<(), sqlx::Error> {
     sqlx::query("DELETE FROM file_cache WHERE path = ?")
         .bind(path)
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}
+
+/// Remove all cached entries whose path starts with `dir_path/`.
+/// Used when a directory is deleted or renamed — cascades the removal to all children.
+pub async fn remove_children(pool: &SqlitePool, dir_path: &str) -> Result<(), sqlx::Error> {
+    let prefix = format!("{}/", dir_path);
+
+    sqlx::query("DELETE FROM file_cache WHERE path LIKE ?")
+        .bind(format!("{}%", prefix))
         .execute(pool)
         .await?;
 
@@ -235,22 +289,24 @@ pub async fn get_app_prefs(pool: &SqlitePool) -> Result<AppPrefs, sqlx::Error> {
         .fetch_all(pool)
         .await?;
 
-    let mut theme    = "system".to_string();
-    let mut locale   = "fr".to_string();
-    let mut ui_scale = 1.0_f32;
+    let mut theme           = "system".to_string();
+    let mut locale          = "fr".to_string();
+    let mut ui_scale        = 1.0_f32;
+    let mut watch_recursive = false;
 
     for row in rows {
         let key: String = row.get("key");
         let val: String = row.get("value");
         match key.as_str() {
-            "theme"    => theme    = val,
-            "locale"   => locale   = val,
-            "ui_scale" => ui_scale = val.parse().unwrap_or(1.0),
-            _          => {}
+            "theme"           => theme           = val,
+            "locale"          => locale          = val,
+            "ui_scale"        => ui_scale        = val.parse().unwrap_or(1.0),
+            "watch_recursive" => watch_recursive = val == "true",
+            _                 => {}
         }
     }
 
-    Ok(AppPrefs { theme, locale, ui_scale })
+    Ok(AppPrefs { theme, locale, ui_scale, watch_recursive })
 }
 
 /// Persist a single app preference key/value pair.

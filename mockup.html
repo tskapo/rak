@@ -370,6 +370,24 @@
     }
     .pref-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 
+    /* ── Scan status (toolbar) ───────────────────────────────────── */
+    .scan-status {
+      display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+    }
+
+    .scan-time {
+      font-size: 11px; color: var(--text-muted); white-space: nowrap;
+      transition: color 0.2s;
+    }
+
+    /* Spinner animation for active scan */
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .btn-icon.spinning { animation: spin 0.8s linear infinite; color: var(--accent); }
+
+    /* Scanning label replaces the time when active */
+    .scan-time.active { color: var(--accent); }
+
     /* ── Scrollbar ───────────────────────────────────────────────── */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -532,7 +550,10 @@
           <button class="view-btn"        id="btn-detail" onclick="setView('detail')" title="Détail">⊞</button>
         </div>
 
-        <button class="btn-icon" title="Actualiser" onclick="spin(this)">↺</button>
+        <div class="scan-status">
+          <span class="scan-time" id="scan-time" title="Dernière indexation">il y a 3 min</span>
+          <button class="btn-icon" id="rescan-btn" title="Réindexer maintenant" onclick="triggerRescan()">↺</button>
+        </div>
       </div>
 
       <!-- Content -->
@@ -586,8 +607,8 @@
       <!-- Status bar -->
       <div class="statusbar">
         <span id="status-left">23 éléments · Vue restaurée : liste / nom ↑</span>
-        <span>Double-clic disque → couleur &amp; surnom · Espace → aperçu</span>
-        <span>NAS Maison · 2,4 To disponibles</span>
+        <span>Double-clic disque → couleur &amp; surnom · Espace → aperçu · ↺ → réindexer</span>
+        <span id="status-right">NAS Maison · 2,4 To disponibles</span>
       </div>
 
     </div>
@@ -882,6 +903,24 @@
       selectItem(Math.max(selectedIndex - 1, 0));
     }
   });
+
+  /* ── Rescan demo ────────────────────────────────────────────────── */
+  function triggerRescan() {
+    const btn  = document.getElementById('rescan-btn');
+    const time = document.getElementById('scan-time');
+    if (btn.classList.contains('spinning')) return; // already scanning
+
+    btn.classList.add('spinning');
+    time.classList.add('active');
+    time.textContent = 'Indexation…';
+
+    // Simulate a 2-second scan
+    setTimeout(() => {
+      btn.classList.remove('spinning');
+      time.classList.remove('active');
+      time.textContent = 'à l\'instant';
+    }, 2000);
+  }
 
   function spin(btn) {
     btn.style.transform = 'rotate(360deg)';
