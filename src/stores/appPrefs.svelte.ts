@@ -1,10 +1,14 @@
-// Store des préférences globales de l'application : thème, langue, échelle UI, etc.
+// Store des préférences globales de l'application : thème, langue, échelle UI.
 // Charge depuis SQLite via get_app_prefs au démarrage — avant le premier rendu.
 // Persiste chaque changement via save_app_pref.
-// Notifie i18n (initLocale) au chargement initial.
+// Délègue l'application du thème à theme.svelte.ts et la locale à i18n.svelte.ts.
 
 import { getAppPrefs, saveAppPref, type AppPrefs } from '$lib/tauri'
 import { initLocale, type Locale } from '$lib/i18n.svelte'
+import { applyTheme, type Theme } from './theme.svelte'
+
+/** Base font-size in px used to compute the scaled value (browser default). */
+const BASE_FONT_SIZE_PX = 16
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -12,10 +16,21 @@ let prefs = $state<AppPrefs | null>(null)
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-/** Load preferences from SQLite. Must be called once at app startup. */
+/**
+ * Load all preferences from SQLite, then apply theme, locale, and UI scale.
+ * Must be called once at app startup before the first render.
+ */
 export async function loadAppPrefs(): Promise<void> {
   prefs = await getAppPrefs()
+
   initLocale(prefs.locale as Locale)
+  applyTheme(prefs.theme as Theme)
+  applyScale(prefs.uiScale)
+}
+
+/** The loaded preferences, or null before `loadAppPrefs()` resolves. */
+export function getPrefs(): AppPrefs | null {
+  return prefs
 }
 
 /** True until the user has picked a language on first launch. */
@@ -29,7 +44,36 @@ export async function completeFirstLaunch(): Promise<void> {
   if (prefs) prefs = { ...prefs, firstLaunch: false }
 }
 
-/** The loaded preferences, or null before loadAppPrefs() resolves. */
-export function getPrefs(): AppPrefs | null {
-  return prefs
+// ── Theme ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Change the active theme, apply it to the DOM, and persist to SQLite.
+ * @param theme `'light'` | `'dark'` | `'system'`
+ */
+export async function setTheme(theme: Theme): Promise<void> {
+  applyTheme(theme)
+  await saveAppPref('theme', theme)
+  if (prefs) prefs = { ...prefs, theme }
+}
+
+// ── UI scale ──────────────────────────────────────────────────────────────────
+
+/**
+ * Change the UI scale, apply it to the document, and persist to SQLite.
+ *
+ * The scale is applied as: `html.style.fontSize = BASE_FONT_SIZE_PX * scale + 'px'`
+ * All rem values in components scale proportionally.
+ *
+ * @param scale Float multiplier — 1.0 = default, 1.2 = 20% larger, 0.9 = 10% smaller
+ */
+export async function setUiScale(scale: number): Promise<void> {
+  applyScale(scale)
+  await saveAppPref('ui_scale', String(scale))
+  if (prefs) prefs = { ...prefs, uiScale: scale }
+}
+
+// ── Internal helpers ──────────────────────────────────────────────────────────
+
+function applyScale(scale: number): void {
+  document.documentElement.style.fontSize = `${BASE_FONT_SIZE_PX * scale}px`
 }

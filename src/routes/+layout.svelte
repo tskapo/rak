@@ -3,6 +3,7 @@
      Affiche LangPickerModal au premier lancement avant toute autre UI. -->
 
 <script lang="ts">
+  import '../styles/tokens.css'
   import { onMount } from 'svelte'
   import LangPickerModal from '../components/ui/LangPickerModal.svelte'
   import { loadAppPrefs, isFirstLaunch, completeFirstLaunch } from '../stores/appPrefs.svelte'
