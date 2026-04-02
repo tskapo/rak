@@ -1,0 +1,3 @@
+-- Schéma SQLite de Räk.
+-- Contient les migrations pour les trois tables : file_cache, folder_prefs, recents.
+-- Appliqué au démarrage de l'app si les tables n'existent pas encore.

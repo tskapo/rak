@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Räk — Maquette v2</title>
+  <style>
+    /* ── Variables ───────────────────────────────────────────────── */
+    :root {
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --radius: 6px;
+      --sidebar-w: 230px;
+      --preview-w: 300px;
+      --toolbar-h: 44px;
+      --item-h: 36px;
+    }
+
+    [data-theme="dark"] {
+      --bg:         #1e1e1e;
+      --bg-sidebar: #161616;
+      --bg-toolbar: #252525;
+      --bg-item:    #1e1e1e;
+      --bg-hover:   #2a2a2a;
+      --bg-sel:     #2d4b7a;
+      --bg-preview: #1a1a1a;
+      --bg-popover: #2c2c2c;
+      --border:     #333;
+      --text:       #e0e0e0;
+      --text-dim:   #888;
+      --text-muted: #555;
+      --accent:     #4a90d9;
+      --icon-dir:   #f0c040;
+      --icon-img:   #6bbf6b;
+      --icon-video: #c77dff;
+      --icon-doc:   #5aafff;
+      --icon-other: #888;
+    }
+
+    [data-theme="light"] {
+      --bg:         #f5f5f5;
+      --bg-sidebar: #ebebeb;
+      --bg-toolbar: #fafafa;
+      --bg-item:    #f5f5f5;
+      --bg-hover:   #e8e8e8;
+      --bg-sel:     #cce0ff;
+      --bg-preview: #ffffff;
+      --bg-popover: #ffffff;
+      --border:     #d0d0d0;
+      --text:       #1a1a1a;
+      --text-dim:   #666;
+      --text-muted: #aaa;
+      --accent:     #1a6fd4;
+      --icon-dir:   #d4a017;
+      --icon-img:   #3a8a3a;
+      --icon-video: #8a3ab9;
+      --icon-doc:   #1a6fd4;
+      --icon-other: #666;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      font-size: 13px;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ── Window ──────────────────────────────────────────────────── */
+    .window { display: flex; flex-direction: column; height: 100vh; border: 1px solid var(--border); }
+
+    .titlebar {
+      height: 38px;
+      background: var(--bg-sidebar);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 12px; gap: 8px; flex-shrink: 0;
+    }
+
+    .traffic-lights { display: flex; gap: 6px; margin-right: 8px; }
+    .traffic-light  { width: 12px; height: 12px; border-radius: 50%; cursor: pointer; }
+    .tl-close { background: #ff5f57; }
+    .tl-min   { background: #febc2e; }
+    .tl-max   { background: #28c840; }
+
+    .titlebar-title {
+      flex: 1; text-align: center; font-size: 13px; font-weight: 500;
+      color: var(--text-dim); margin-right: 120px;
+    }
+
+    .titlebar-actions { display: flex; gap: 4px; margin-left: auto; }
+
+    /* ── Buttons ─────────────────────────────────────────────────── */
+    .btn-icon {
+      width: 28px; height: 28px; border: none; background: transparent;
+      color: var(--text-dim); border-radius: var(--radius); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; transition: background 0.1s; flex-shrink: 0;
+    }
+    .btn-icon:hover { background: var(--bg-hover); color: var(--text); }
+
+    .btn-text {
+      height: 26px; padding: 0 10px; border: 1px solid var(--border);
+      background: var(--bg-hover); color: var(--text-dim); border-radius: var(--radius);
+      cursor: pointer; font-size: 12px; font-family: var(--font);
+      display: flex; align-items: center; gap: 5px;
+    }
+    .btn-text:hover { color: var(--text); }
+
+    /* ── App shell ───────────────────────────────────────────────── */
+    .app-shell { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── Sidebar ─────────────────────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; flex-shrink: 0;
+      overflow-y: auto;
+    }
+
+    .sidebar-section { padding: 14px 0 6px; }
+    .sidebar-label {
+      font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--text-muted); padding: 0 14px 5px;
+    }
+
+    .sidebar-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 14px; cursor: pointer; color: var(--text-dim);
+      font-size: 13px; transition: background 0.1s; position: relative;
+    }
+    .sidebar-item:hover  { background: var(--bg-hover); color: var(--text); }
+    .sidebar-item.active { background: var(--bg-sel); color: var(--text); }
+
+    .sidebar-icon { font-size: 14px; width: 18px; text-align: center; }
+
+    /* Disk color dot */
+    .disk-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+      margin-left: auto; opacity: 0.85;
+    }
+
+    .sidebar-separator { height: 1px; background: var(--border); margin: 4px 14px; }
+
+    .sidebar-footer {
+      margin-top: auto;
+      border-top: 1px solid var(--border);
+      padding: 10px 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .lang-select {
+      background: var(--bg-hover); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text-dim);
+      font-size: 12px; font-family: var(--font);
+      padding: 3px 6px; cursor: pointer; outline: none;
+    }
+    .lang-select:focus { border-color: var(--accent); color: var(--text); }
+
+    /* ── Main ────────────────────────────────────────────────────── */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* ── Toolbar ─────────────────────────────────────────────────── */
+    .toolbar {
+      height: var(--toolbar-h);
+      background: var(--bg-toolbar); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 12px; gap: 8px; flex-shrink: 0;
+    }
+
+    .nav-btns { display: flex; gap: 2px; }
+
+    .breadcrumb {
+      display: flex; align-items: center; gap: 2px; flex: 1; overflow: hidden; font-size: 13px;
+    }
+    .bc-segment {
+      color: var(--text-dim); cursor: pointer; padding: 3px 6px;
+      border-radius: 4px; white-space: nowrap; transition: background 0.1s;
+    }
+    .bc-segment:hover { background: var(--bg-hover); color: var(--text); }
+    .bc-segment.current { color: var(--text); font-weight: 500; }
+    .bc-sep { color: var(--text-muted); font-size: 11px; }
+
+    /* Disk color accent in breadcrumb */
+    .bc-disk-dot {
+      display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+      margin-right: 5px; vertical-align: middle;
+    }
+
+    .view-toggle {
+      display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+    }
+    .view-btn {
+      width: 30px; height: 28px; background: transparent; border: none;
+      color: var(--text-dim); cursor: pointer; display: flex; align-items: center;
+      justify-content: center; font-size: 14px; transition: background 0.1s;
+    }
+    .view-btn + .view-btn { border-left: 1px solid var(--border); }
+    .view-btn:hover  { background: var(--bg-hover); color: var(--text); }
+    .view-btn.active { background: var(--bg-sel); color: var(--text); }
+
+    /* ── Content ─────────────────────────────────────────────────── */
+    .content-area { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── File list ───────────────────────────────────────────────── */
+    .file-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+
+    .file-item {
+      display: flex; align-items: center; gap: 10px;
+      height: var(--item-h); padding: 0 14px; cursor: pointer; transition: background 0.08s;
+    }
+    .file-item:hover    { background: var(--bg-hover); }
+    .file-item.selected { background: var(--bg-sel); }
+
+    .file-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+    .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .file-tags { display: flex; gap: 4px; flex-shrink: 0; align-items: center; }
+
+    .tag-pill {
+      font-size: 10px; padding: 1px 7px; border-radius: 9px;
+      font-weight: 600; white-space: nowrap; opacity: 0.9;
+    }
+
+    .file-meta {
+      display: flex; gap: 20px; color: var(--text-dim); font-size: 12px; flex-shrink: 0;
+    }
+    .file-size { width: 70px; text-align: right; }
+    .file-date { width: 120px; }
+    .file-type { width: 90px; color: var(--text-muted); }
+
+    .list-header {
+      display: flex; align-items: center; gap: 10px; height: 28px;
+      padding: 0 14px; border-bottom: 1px solid var(--border);
+      font-size: 11px; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0;
+      background: var(--bg-toolbar);
+    }
+    .lh-name { flex: 1; }
+    .lh-tags { width: 120px; }
+    .lh-size { width: 70px; text-align: right; }
+    .lh-date { width: 120px; }
+    .lh-type { width: 90px; }
+
+    /* ── Views ───────────────────────────────────────────────────── */
+    .file-list-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    .list-view   { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+    .detail-view { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+    .column-view { display: none; flex: 1; overflow-x: auto; overflow-y: hidden; }
+    .list-view.active, .detail-view.active, .column-view.active { display: flex; }
+
+    .col-panel { width: 200px; min-width: 200px; border-right: 1px solid var(--border); overflow-y: auto; flex-shrink: 0; padding: 4px 0; }
+    .col-item {
+      display: flex; align-items: center; gap: 8px;
+      height: 30px; padding: 0 12px; cursor: pointer; font-size: 13px;
+    }
+    .col-item:hover    { background: var(--bg-hover); }
+    .col-item.selected { background: var(--bg-sel); }
+    .col-chevron { margin-left: auto; color: var(--text-muted); font-size: 10px; }
+
+    /* ── Preview ─────────────────────────────────────────────────── */
+    .preview-panel {
+      width: var(--preview-w);
+      background: var(--bg-preview); border-left: 1px solid var(--border);
+      display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden;
+    }
+    .preview-panel.hidden { display: none; }
+
+    .preview-header {
+      height: var(--toolbar-h); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 12px;
+      font-size: 13px; font-weight: 500;
+    }
+
+    .preview-body {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; overflow-y: auto; padding: 20px 16px; gap: 14px;
+    }
+
+    .preview-thumb {
+      width: 100%; aspect-ratio: 16/10; background: var(--bg-hover);
+      border-radius: var(--radius); display: flex; align-items: center;
+      justify-content: center; font-size: 48px; overflow: hidden; border: 1px solid var(--border);
+    }
+
+    .preview-name { font-size: 14px; font-weight: 600; text-align: center; word-break: break-all; }
+
+    .preview-tags { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+
+    .preview-meta-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .preview-meta-table tr { border-bottom: 1px solid var(--border); }
+    .preview-meta-table td { padding: 7px 4px; }
+    .preview-meta-table td:first-child { color: var(--text-muted); width: 80px; }
+    .preview-meta-table td:last-child  { color: var(--text); font-weight: 500; }
+
+    .preview-tag-edit {
+      width: 100%; padding: 8px 10px; background: var(--bg-hover);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      font-size: 12px; color: var(--text-dim); cursor: pointer; text-align: left;
+      font-family: var(--font); transition: border-color 0.1s;
+    }
+    .preview-tag-edit:hover { border-color: var(--accent); color: var(--text); }
+
+    /* ── Popover disque ──────────────────────────────────────────── */
+    .popover {
+      position: fixed; z-index: 1000;
+      background: var(--bg-popover); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px; width: 220px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      display: none; flex-direction: column; gap: 10px;
+    }
+    .popover.visible { display: flex; }
+
+    .popover-title { font-size: 12px; font-weight: 600; color: var(--text-dim); }
+
+    .color-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+    .color-swatch {
+      width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+      border: 2px solid transparent; transition: transform 0.1s;
+    }
+    .color-swatch:hover { transform: scale(1.15); }
+    .color-swatch.selected { border-color: var(--text); }
+
+    .popover input {
+      width: 100%; background: var(--bg-hover); border: 1px solid var(--border);
+      border-radius: 4px; padding: 5px 8px; color: var(--text);
+      font-size: 12px; font-family: var(--font); outline: none;
+    }
+    .popover input:focus { border-color: var(--accent); }
+
+    .popover-actions { display: flex; justify-content: flex-end; gap: 6px; }
+
+    .btn-small {
+      height: 24px; padding: 0 10px; border-radius: 4px; font-size: 12px;
+      font-family: var(--font); cursor: pointer; border: 1px solid var(--border);
+      background: transparent; color: var(--text-dim); transition: all 0.1s;
+    }
+    .btn-small.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-small:hover { color: var(--text); }
+    .btn-small.primary:hover { opacity: 0.85; }
+
+    /* ── Tag picker popover ──────────────────────────────────────── */
+    .tag-list { display: flex; flex-direction: column; gap: 4px; }
+    .tag-row {
+      display: flex; align-items: center; gap: 8px; padding: 4px 6px;
+      border-radius: 4px; cursor: pointer;
+    }
+    .tag-row:hover { background: var(--bg-hover); }
+    .tag-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .tag-row span { flex: 1; font-size: 12px; }
+    .tag-check { font-size: 12px; color: var(--accent); }
+
+    /* ── Status bar ──────────────────────────────────────────────── */
+    .statusbar {
+      height: 24px; background: var(--bg-toolbar); border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 14px; font-size: 11px; color: var(--text-muted); flex-shrink: 0;
+    }
+
+    /* ── Prefs badge ─────────────────────────────────────────────── */
+    .pref-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; padding: 1px 6px; border-radius: 8px;
+      background: var(--bg-hover); border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .pref-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+    /* ── Scrollbar ───────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .context-menu {
+      position: fixed; z-index: 2000; background: var(--bg-popover);
+      border: 1px solid var(--border); border-radius: 6px; padding: 4px 0; width: 180px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4); display: none;
+    }
+    .context-menu.visible { display: block; }
+    .cm-item {
+      padding: 6px 14px; font-size: 13px; color: var(--text-dim); cursor: pointer;
+    }
+    .cm-item:hover { background: var(--bg-hover); color: var(--text); }
+    .cm-sep { height: 1px; background: var(--border); margin: 3px 0; }
+  </style>
+</head>
+<body>
+
+<!-- Popovers (hors flux) -->
+<div class="popover" id="disk-popover">
+  <div class="popover-title">Étiquette du disque</div>
+  <div class="color-grid" id="disk-colors"></div>
+  <input id="disk-name-input" placeholder="Surnom (ex: NAS Maison)" />
+  <div class="popover-actions">
+    <button class="btn-small" onclick="closePopover('disk-popover')">Annuler</button>
+    <button class="btn-small primary" onclick="saveDiskLabel()">OK</button>
+  </div>
+</div>
+
+<div class="popover" id="tag-popover">
+  <div class="popover-title">Étiquettes</div>
+  <div class="tag-list" id="tag-list"></div>
+  <div class="popover-actions">
+    <button class="btn-small" onclick="closePopover('tag-popover')">Fermer</button>
+  </div>
+</div>
+
+<div class="context-menu" id="ctx-menu">
+  <div class="cm-item">Ouvrir</div>
+  <div class="cm-item">Aperçu rapide</div>
+  <div class="cm-sep"></div>
+  <div class="cm-item" onclick="openTagPopover(event)">Étiqueter…</div>
+  <div class="cm-item">Copier le chemin</div>
+  <div class="cm-sep"></div>
+  <div class="cm-item" style="color:#e55">Supprimer</div>
+</div>
+
+<div class="window">
+
+  <!-- Titlebar -->
+  <div class="titlebar">
+    <div class="traffic-lights">
+      <div class="traffic-light tl-close"></div>
+      <div class="traffic-light tl-min"></div>
+      <div class="traffic-light tl-max"></div>
+    </div>
+    <div class="titlebar-title">räk — NAS Maison · Projets</div>
+    <div class="titlebar-actions">
+      <span class="pref-badge"><span class="pref-dot"></span>état restauré</span>
+      <button class="btn-icon" onclick="toggleTheme()" title="Thème">◑</button>
+    </div>
+  </div>
+
+  <!-- App shell -->
+  <div class="app-shell">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Favoris</div>
+        <div class="sidebar-item">
+          <span class="sidebar-icon">🖥</span> Bureau
+        </div>
+        <div class="sidebar-item active">
+          <span class="sidebar-icon">📁</span> NAS · Projets
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-icon">📁</span> NAS · Photos
+        </div>
+      </div>
+
+      <div class="sidebar-separator"></div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Appareils</div>
+
+        <!-- Disk items with color dots -->
+        <div class="sidebar-item" id="disk-nas" ondblclick="openDiskPopover(event,'disk-nas','#4a90d9','NAS Maison')">
+          <span class="sidebar-icon">💾</span>
+          <span id="disk-nas-label">NAS Maison</span>
+          <span class="disk-dot" id="disk-nas-dot" style="background:#4a90d9"></span>
+        </div>
+        <div class="sidebar-item" ondblclick="openDiskPopover(event,'disk-backup','#e8a838','Backup Chaud')">
+          <span class="sidebar-icon">💾</span>
+          <span id="disk-backup-label">Backup Chaud</span>
+          <span class="disk-dot" id="disk-backup-dot" style="background:#e8a838"></span>
+        </div>
+        <div class="sidebar-item" ondblclick="openDiskPopover(event,'disk-media','#6bbf6b','')">
+          <span class="sidebar-icon">💾</span>
+          <span id="disk-media-label">NAS · Média</span>
+          <span class="disk-dot" id="disk-media-dot" style="background:#6bbf6b"></span>
+        </div>
+        <div class="sidebar-item">
+          <span class="sidebar-icon">💿</span> Macintosh HD
+        </div>
+      </div>
+
+      <div class="sidebar-separator"></div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Récents</div>
+        <div class="sidebar-item"><span class="sidebar-icon">🕐</span> Design</div>
+        <div class="sidebar-item"><span class="sidebar-icon">🕐</span> src</div>
+        <div class="sidebar-item"><span class="sidebar-icon">🕐</span> exports_2024</div>
+      </div>
+
+      <!-- Footer : langue -->
+      <div class="sidebar-footer">
+        <select class="lang-select" id="lang-select" onchange="setLang(this.value)">
+          <option value="fr">Français</option>
+          <option value="en">English</option>
+          <option value="ka">ქართული</option>
+        </select>
+        <span style="flex:1"></span>
+        <span style="font-size:10px;color:var(--text-muted)" title="Persisté en SQLite">SQLite ✓</span>
+      </div>
+
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="nav-btns">
+          <button class="btn-icon" title="Précédent">‹</button>
+          <button class="btn-icon" title="Suivant">›</button>
+        </div>
+
+        <div class="breadcrumb">
+          <span class="bc-segment">Volumes</span>
+          <span class="bc-sep">›</span>
+          <span class="bc-segment">
+            <span class="bc-disk-dot" style="background:#4a90d9"></span>NAS Maison
+          </span>
+          <span class="bc-sep">›</span>
+          <span class="bc-segment current">Projets</span>
+        </div>
+
+        <button class="btn-text" onclick="openTagPopover(event)" title="Filtrer par tag">
+          🏷 Tags
+        </button>
+
+        <div class="view-toggle">
+          <button class="view-btn active" id="btn-list"   onclick="setView('list')"   title="Liste">☰</button>
+          <button class="view-btn"        id="btn-column" onclick="setView('column')" title="Colonne">⋮⋮</button>
+          <button class="view-btn"        id="btn-detail" onclick="setView('detail')" title="Détail">⊞</button>
+        </div>
+
+        <button class="btn-icon" title="Actualiser" onclick="spin(this)">↺</button>
+      </div>
+
+      <!-- Content -->
+      <div class="content-area">
+        <div class="file-list-container">
+
+          <!-- LIST -->
+          <div class="list-view active" id="view-list">
+            <div class="list-header">
+              <span style="width:20px"></span>
+              <span class="lh-name">Nom ↑</span>
+              <span class="lh-tags">Étiquettes</span>
+              <span class="lh-size">Taille</span>
+              <span class="lh-date">Modifié</span>
+              <span class="lh-type">Type</span>
+            </div>
+            <div class="file-list" id="file-list-list"></div>
+          </div>
+
+          <!-- DETAIL -->
+          <div class="detail-view" id="view-detail">
+            <div class="list-header">
+              <span style="width:20px"></span>
+              <span class="lh-name">Nom ↑</span>
+              <span class="lh-tags">Étiquettes</span>
+              <span class="lh-size">Taille</span>
+              <span class="lh-date">Modifié</span>
+              <span class="lh-type">Type</span>
+            </div>
+            <div class="file-list" id="file-list-detail"></div>
+          </div>
+
+          <!-- COLUMN -->
+          <div class="column-view" id="view-column">
+            <div class="col-panel" id="col-0"></div>
+            <div class="col-panel" id="col-1"></div>
+          </div>
+
+        </div>
+
+        <!-- Preview -->
+        <div class="preview-panel hidden" id="preview-panel">
+          <div class="preview-header">
+            <span id="preview-title">Aperçu</span>
+            <button class="btn-icon" onclick="closePreview()">✕</button>
+          </div>
+          <div class="preview-body" id="preview-body"></div>
+        </div>
+      </div>
+
+      <!-- Status bar -->
+      <div class="statusbar">
+        <span id="status-left">23 éléments · Vue restaurée : liste / nom ↑</span>
+        <span>Double-clic disque → couleur &amp; surnom · Espace → aperçu</span>
+        <span>NAS Maison · 2,4 To disponibles</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ── Palette de couleurs disques ───────────────────────────────── */
+  const DISK_COLORS = [
+    '#4a90d9','#e8a838','#6bbf6b','#e55','#c77dff',
+    '#ff7f50','#20b2aa','#fa8072','#888','#f0c040'
+  ];
+
+  /* ── Tags mock ─────────────────────────────────────────────────── */
+  const TAGS = [
+    { id:1, name:'Urgent',   color:'#e55555' },
+    { id:2, name:'Design',   color:'#c77dff' },
+    { id:3, name:'Client',   color:'#4a90d9' },
+    { id:4, name:'Archive',  color:'#888888' },
+    { id:5, name:'Livraison',color:'#6bbf6b' },
+  ];
+
+  /* ── Files mock ────────────────────────────────────────────────── */
+  const files = [
+    { name:'Design',           isDir:true,  size:null,      date:'2 avr. 2026',   type:'Dossier',   icon:'📁', iconColor:'var(--icon-dir)',   tags:[2,3] },
+    { name:'src',              isDir:true,  size:null,      date:'1 avr. 2026',   type:'Dossier',   icon:'📁', iconColor:'var(--icon-dir)',   tags:[] },
+    { name:'assets',           isDir:true,  size:null,      date:'28 mars 2026',  type:'Dossier',   icon:'📁', iconColor:'var(--icon-dir)',   tags:[3] },
+    { name:'exports_2024',     isDir:true,  size:null,      date:'15 jan. 2026',  type:'Dossier',   icon:'📁', iconColor:'var(--icon-dir)',   tags:[4,5] },
+    { name:'archives',         isDir:true,  size:null,      date:'3 déc. 2025',   type:'Dossier',   icon:'📁', iconColor:'var(--icon-dir)',   tags:[4] },
+    { name:'README.md',        isDir:false, size:'4 Ko',    date:'2 avr. 2026',   type:'Markdown',  icon:'📄', iconColor:'var(--icon-doc)',   tags:[] },
+    { name:'schema.sql',       isDir:false, size:'12 Ko',   date:'1 avr. 2026',   type:'SQL',       icon:'📄', iconColor:'var(--icon-doc)',   tags:[1] },
+    { name:'cover.png',        isDir:false, size:'2,1 Mo',  date:'31 mars 2026',  type:'Image PNG', icon:'🖼', iconColor:'var(--icon-img)',   tags:[2,3,5] },
+    { name:'demo.mp4',         isDir:false, size:'148 Mo',  date:'28 mars 2026',  type:'Vidéo MP4', icon:'🎬', iconColor:'var(--icon-video)', tags:[5] },
+    { name:'rapport.pdf',      isDir:false, size:'3,4 Mo',  date:'22 mars 2026',  type:'PDF',       icon:'📕', iconColor:'var(--icon-doc)',   tags:[1,3] },
+    { name:'palette.sketch',   isDir:false, size:'18 Mo',   date:'10 mars 2026',  type:'Sketch',    icon:'🎨', iconColor:'var(--icon-other)', tags:[2] },
+    { name:'backup_full.tar',  isDir:false, size:'4,2 Go',  date:'1 mars 2026',   type:'Archive',   icon:'📦', iconColor:'var(--icon-other)', tags:[4] },
+    { name:'notes.txt',        isDir:false, size:'1 Ko',    date:'12 fév. 2026',  type:'Texte',     icon:'📝', iconColor:'var(--icon-doc)',   tags:[] },
+    { name:'logo.svg',         isDir:false, size:'8 Ko',    date:'5 fév. 2026',   type:'Image SVG', icon:'🖼', iconColor:'var(--icon-img)',   tags:[2] },
+    { name:'config.json',      isDir:false, size:'2 Ko',    date:'20 jan. 2026',  type:'JSON',      icon:'⚙️', iconColor:'var(--icon-other)', tags:[] },
+    { name:'fonts',            isDir:true,  size:null,      date:'10 jan. 2026',  type:'Dossier',   icon:'📁', iconColor:'var(--icon-dir)',   tags:[2] },
+    { name:'screenshot_1.png', isDir:false, size:'890 Ko',  date:'5 jan. 2026',   type:'Image PNG', icon:'🖼', iconColor:'var(--icon-img)',   tags:[] },
+    { name:'presentation.key', isDir:false, size:'22 Mo',   date:'28 déc. 2025',  type:'Keynote',   icon:'📊', iconColor:'var(--icon-doc)',   tags:[1,3,5] },
+    { name:'data_export.csv',  isDir:false, size:'540 Ko',  date:'15 déc. 2025',  type:'CSV',       icon:'📊', iconColor:'var(--icon-doc)',   tags:[] },
+  ];
+
+  /* ── State ─────────────────────────────────────────────────────── */
+  let selectedIndex = -1;
+  let previewOpen = false;
+  let currentView = 'list';
+  let activeDiskTarget = null;
+  let activeDiskColor  = '#4a90d9';
+  let currentLang = 'fr';
+
+  /* ── Render helpers ────────────────────────────────────────────── */
+  function tagsHtml(tagIds) {
+    return tagIds.map(id => {
+      const t = TAGS.find(t => t.id === id);
+      if (!t) return '';
+      const bg = t.color + '30';
+      return `<span class="tag-pill" style="background:${bg};color:${t.color}">${t.name}</span>`;
+    }).join('');
+  }
+
+  function renderList(containerId) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    files.forEach((f, i) => {
+      const item = document.createElement('div');
+      item.className = 'file-item';
+      item.innerHTML = `
+        <span class="file-icon" style="color:${f.iconColor}">${f.icon}</span>
+        <span class="file-name">${f.name}</span>
+        <div class="file-tags">${tagsHtml(f.tags)}</div>
+        <div class="file-meta">
+          <span class="file-size">${f.size ?? '—'}</span>
+          <span class="file-date">${f.date}</span>
+          <span class="file-type">${f.type}</span>
+        </div>
+      `;
+      item.addEventListener('click', () => selectItem(i));
+      item.addEventListener('dblclick', () => openItem(i));
+      item.addEventListener('contextmenu', e => showContextMenu(e, i));
+      container.appendChild(item);
+    });
+  }
+
+  function renderColumnView() {
+    const col0 = document.getElementById('col-0');
+    const col1 = document.getElementById('col-1');
+    const roots = [
+      { name:'NAS Maison', icon:'💾', isDir:true },
+      { name:'Projets',    icon:'📁', isDir:true },
+      { name:'Photos',     icon:'📁', isDir:true },
+      { name:'Backups',    icon:'📁', isDir:true },
+    ];
+    const children = files.slice(0, 8);
+    col0.innerHTML = roots.map((f,i) => `
+      <div class="col-item ${f.name==='Projets'?'selected':''}">
+        <span>${f.icon}</span><span>${f.name}</span>
+        ${f.isDir ? '<span class="col-chevron">›</span>' : ''}
+      </div>`).join('');
+    col1.innerHTML = children.map(f => `
+      <div class="col-item">
+        <span style="color:${f.iconColor}">${f.icon}</span>
+        <span>${f.name}</span>
+        ${f.isDir ? '<span class="col-chevron">›</span>' : ''}
+      </div>`).join('');
+  }
+
+  /* ── View switching ────────────────────────────────────────────── */
+  function setView(view) {
+    currentView = view;
+    ['list','detail','column'].forEach(v => {
+      document.getElementById(`view-${v}`).classList.toggle('active', v === view);
+      document.getElementById(`btn-${v}`).classList.toggle('active', v === view);
+    });
+    if (view === 'list')   renderList('file-list-list');
+    if (view === 'detail') renderList('file-list-detail');
+    if (view === 'column') renderColumnView();
+    closePreview();
+    document.getElementById('status-left').textContent =
+      `23 éléments · Vue restaurée : ${view} / nom ↑`;
+  }
+
+  /* ── Selection ─────────────────────────────────────────────────── */
+  function selectItem(index) {
+    selectedIndex = index;
+    document.querySelectorAll('.file-item').forEach((el, i) => {
+      el.classList.toggle('selected', i === index);
+    });
+  }
+
+  function openItem(i) {}
+
+  /* ── Preview ───────────────────────────────────────────────────── */
+  function openPreview(index) {
+    const f = files[index];
+    previewOpen = true;
+    document.getElementById('preview-panel').classList.remove('hidden');
+    document.getElementById('preview-title').textContent = f.name;
+
+    const thumb = f.type.includes('Image')
+      ? `<div style="width:100%;height:100%;background:linear-gradient(135deg,#2a3a5a,#1a2a4a);display:flex;align-items:center;justify-content:center;font-size:52px;">${f.icon}</div>`
+      : `<span style="font-size:52px">${f.icon}</span>`;
+
+    document.getElementById('preview-body').innerHTML = `
+      <div class="preview-thumb">${thumb}</div>
+      <div class="preview-name">${f.name}</div>
+      <div class="preview-tags">${tagsHtml(f.tags)}</div>
+      <button class="preview-tag-edit" onclick="openTagPopover(event)">🏷 Modifier les étiquettes…</button>
+      <table class="preview-meta-table">
+        <tr><td>Type</td><td>${f.type}</td></tr>
+        <tr><td>Taille</td><td>${f.size ?? '—'}</td></tr>
+        <tr><td>Modifié</td><td>${f.date}</td></tr>
+        <tr><td>Chemin</td><td style="font-size:11px;word-break:break-all">/Volumes/NAS/Projets/${f.name}</td></tr>
+      </table>
+    `;
+  }
+
+  function closePreview() {
+    previewOpen = false;
+    document.getElementById('preview-panel').classList.add('hidden');
+  }
+
+  /* ── Context menu ──────────────────────────────────────────────── */
+  function showContextMenu(e, index) {
+    e.preventDefault();
+    selectItem(index);
+    const menu = document.getElementById('ctx-menu');
+    menu.style.left = e.clientX + 'px';
+    menu.style.top  = e.clientY + 'px';
+    menu.classList.add('visible');
+  }
+
+  document.addEventListener('click', () => {
+    document.getElementById('ctx-menu').classList.remove('visible');
+  });
+
+  /* ── Tag picker ────────────────────────────────────────────────── */
+  function openTagPopover(e) {
+    e.stopPropagation();
+    const pop = document.getElementById('tag-popover');
+    const list = document.getElementById('tag-list');
+    const f = selectedIndex >= 0 ? files[selectedIndex] : null;
+
+    list.innerHTML = TAGS.map(t => {
+      const checked = f && f.tags.includes(t.id);
+      return `
+        <div class="tag-row" onclick="toggleTag(${t.id}, this)">
+          <span class="tag-dot" style="background:${t.color}"></span>
+          <span>${t.name}</span>
+          <span class="tag-check">${checked ? '✓' : ''}</span>
+        </div>`;
+    }).join('');
+
+    pop.style.left = Math.min(e.clientX, window.innerWidth - 240) + 'px';
+    pop.style.top  = Math.min(e.clientY + 4, window.innerHeight - 200) + 'px';
+    pop.classList.add('visible');
+    document.getElementById('ctx-menu').classList.remove('visible');
+    e.stopPropagation();
+    document.addEventListener('click', () => pop.classList.remove('visible'), { once:true });
+  }
+
+  function toggleTag(id, row) {
+    if (!files[selectedIndex]) return;
+    const tags = files[selectedIndex].tags;
+    const idx = tags.indexOf(id);
+    if (idx >= 0) tags.splice(idx, 1);
+    else tags.push(id);
+    row.querySelector('.tag-check').textContent = tags.includes(id) ? '✓' : '';
+    renderList(currentView === 'list' ? 'file-list-list' : 'file-list-detail');
+    selectItem(selectedIndex);
+    if (previewOpen) openPreview(selectedIndex);
+  }
+
+  /* ── Disk label popover ────────────────────────────────────────── */
+  function openDiskPopover(e, diskId, currentColor, currentName) {
+    e.stopPropagation();
+    activeDiskTarget = diskId;
+    activeDiskColor  = currentColor;
+
+    const grid = document.getElementById('disk-colors');
+    grid.innerHTML = DISK_COLORS.map(c => `
+      <div class="color-swatch ${c===currentColor?'selected':''}"
+           style="background:${c}"
+           onclick="selectDiskColor('${c}', this)"></div>`).join('');
+
+    document.getElementById('disk-name-input').value = currentName;
+
+    const pop = document.getElementById('disk-popover');
+    pop.style.left = Math.min(e.clientX, window.innerWidth - 240) + 'px';
+    pop.style.top  = Math.min(e.clientY + 4, window.innerHeight - 200) + 'px';
+    pop.classList.add('visible');
+  }
+
+  function selectDiskColor(color, el) {
+    activeDiskColor = color;
+    document.querySelectorAll('#disk-colors .color-swatch').forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function saveDiskLabel() {
+    const name = document.getElementById('disk-name-input').value.trim();
+    if (activeDiskTarget) {
+      const dot = document.getElementById(activeDiskTarget + '-dot');
+      const lbl = document.getElementById(activeDiskTarget + '-label');
+      if (dot) dot.style.background = activeDiskColor;
+      if (lbl && name) lbl.textContent = name;
+    }
+    closePopover('disk-popover');
+  }
+
+  function closePopover(id) {
+    document.getElementById(id).classList.remove('visible');
+  }
+
+  /* ── Language ──────────────────────────────────────────────────── */
+  const LANG_LABELS = {
+    fr: { storage: 'NAS Maison · 2,4 To disponibles',  hint: 'Double-clic disque → couleur & surnom · Espace → aperçu' },
+    en: { storage: 'Home NAS · 2.4 TB available',      hint: 'Double-click drive → color & name · Space → preview' },
+    ka: { storage: 'NAS სახლი · 2.4 ტბ თავისუფალია',  hint: 'ორმაგი დაჭერა → ფერი & სახელი · Space → გადახედვა' },
+  };
+
+  function setLang(lang) {
+    currentLang = lang;
+    document.getElementById('lang-select').value = lang;
+    const labels = LANG_LABELS[lang] || LANG_LABELS.fr;
+    const spans = document.querySelectorAll('.statusbar span');
+    spans[2].textContent = labels.storage;
+    spans[1].textContent = labels.hint;
+  }
+
+  /* ── Theme ─────────────────────────────────────────────────────── */
+  function toggleTheme() {
+    const html = document.documentElement;
+    html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
+  }
+
+  /* ── Keyboard ──────────────────────────────────────────────────── */
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && selectedIndex >= 0) {
+      e.preventDefault();
+      previewOpen ? closePreview() : openPreview(selectedIndex);
+    }
+    if (e.key === 'Escape') closePreview();
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      selectItem(Math.min(selectedIndex + 1, files.length - 1));
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      selectItem(Math.max(selectedIndex - 1, 0));
+    }
+  });
+
+  function spin(btn) {
+    btn.style.transform = 'rotate(360deg)';
+    btn.style.transition = 'transform 0.4s';
+    setTimeout(() => { btn.style.transform = ''; btn.style.transition = ''; }, 400);
+  }
+
+  /* ── Init ──────────────────────────────────────────────────────── */
+  renderList('file-list-list');
+</script>
+
+</body>
+</html>

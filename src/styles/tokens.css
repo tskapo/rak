@@ -1,0 +1,9 @@
+/*
+ * tokens.css — design tokens de Räk.
+ * Toutes les valeurs visuelles (couleurs, espacements, rayons, ombres, typographie)
+ * sont définies ici sous forme de variables CSS.
+ *
+ * Règle absolue : aucun composant ne code une couleur, taille ou ombre en dur.
+ * Ajouter un thème = surcharger ces variables sur [data-theme="nom"], sans toucher aux composants.
+ * Toutes les dimensions sont en rem — l'échelle globale se contrôle via font-size sur <html>.
+ */
