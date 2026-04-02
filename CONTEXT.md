@@ -1,6 +1,6 @@
 # Räk — CONTEXT.md
 
-> **Räk** (რა̈კ) — mot svane signifiant *"clignement d'œil"* (un instant, une fraction de seconde).
+> **Räk** (რა̈კ) — რა̈კ - თვალის დახამხამება (წამი, დრო) mot svane signifiant *"clignement d'œil"* (un instant, une fraction de seconde).
 > Le nom capture la promesse de l'app : voir ses fichiers distants en un éclair.
 
 ## Vue d'ensemble
@@ -307,6 +307,11 @@ Hauteur fixe par item :
 - Chaque dossier visité → ajouté dans `recents` SQLite
 - Affiché dans la sidebar et dans une vue dédiée `/recent`
 - Limité à 50 entrées (FIFO)
+
+### Icones
+- Gestionnaire d'icônes
+- Utilisateur peut definir les icônes pour chaque extension
+- Utilsateur peut attribuer une icône à un élement
 
 ---
 

@@ -4,7 +4,7 @@
 mod commands;
 mod services;
 
-use services::cache;
+use services::{cache, indexer};
 use sqlx::SqlitePool;
 use tauri::Manager;
 
@@ -29,6 +29,14 @@ pub fn run() {
 
             let pool = tauri::async_runtime::block_on(cache::open(&db_path_str))
                 .expect("failed to open SQLite database");
+
+            // Determine the best startup path (last visited or home) then kick off
+            // a background index scan so the cache is ready before the user navigates.
+            let start_path =
+                tauri::async_runtime::block_on(indexer::resolve_start_path(&pool));
+
+            let app_handle = app.handle().clone();
+            indexer::scan_dir(pool.clone(), start_path, app_handle);
 
             app.manage(AppState { db: pool });
 
