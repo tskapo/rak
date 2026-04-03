@@ -13,11 +13,12 @@
   import type { FileEntry }               from '$lib/tauri'
 
   interface Props {
-    activeTagIds?: number[]
-    onpreview?:    (entry: FileEntry) => void
+    activeTagIds?:  number[]
+    previewActive?: boolean
+    onpreview?:     (entry: FileEntry) => void
   }
 
-  const { activeTagIds = [], onpreview }: Props = $props()
+  const { activeTagIds = [], previewActive = false, onpreview }: Props = $props()
 
   // ── Container height ──────────────────────────────────────────────────────
   let containerEl = $state<HTMLElement | null>(null)
@@ -116,6 +117,13 @@
   function openEntry(entry: FileEntry) {
     if (entry.isDir) navigate(entry.path).catch(console.error)
   }
+
+  // Keep preview in sync with keyboard selection when the panel is open.
+  $effect(() => {
+    if (previewActive && selectedIndex >= 0 && sortedEntries[selectedIndex]) {
+      onpreview?.(sortedEntries[selectedIndex])
+    }
+  })
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->

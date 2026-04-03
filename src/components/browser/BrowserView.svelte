@@ -139,11 +139,11 @@
   <!-- Content area + preview panel -->
   <div class="bv-content">
     {#if getPrefs().viewMode === 'list'}
-      <FileListList   {activeTagIds} onpreview={(e) => previewPath = e.path} />
+      <FileListList   {activeTagIds} previewActive={previewPath !== null} onpreview={(e) => previewPath = e.path} />
     {:else if getPrefs().viewMode === 'column'}
       <FileListColumn onpreview={(e) => previewPath = e.path} />
     {:else}
-      <FileListDetail {activeTagIds} onpreview={(e) => previewPath = e.path} />
+      <FileListDetail {activeTagIds} previewActive={previewPath !== null} onpreview={(e) => previewPath = e.path} />
     {/if}
 
     <PreviewPanel
