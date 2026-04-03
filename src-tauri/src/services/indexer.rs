@@ -102,15 +102,18 @@ async fn walk_and_index(pool: SqlitePool, root: String, app_handle: AppHandle) {
             .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
             .map(|d| d.as_secs() as i64);
 
-        // Pass 1: no MIME detection — kept None so COALESCE preserves any
-        // previously detected value stored in the DB.
+        // Pass 1: MIME from extension (zero I/O). Files with unknown extensions
+        // are queued for pass-2 magic-byte detection.
+        let mime_type = if is_dir { None } else { mime_from_ext(&path) };
+        let needs_magic = !is_dir && mime_type.is_none();
+
         let file_entry = cache::FileEntry {
             path: path_str.clone(),
             name,
             is_dir,
             size,
             modified_at,
-            mime_type: None,
+            mime_type,
         };
 
         if let Err(e) = cache::upsert_file(&pool, &file_entry, indexed_at).await {
@@ -118,8 +121,8 @@ async fn walk_and_index(pool: SqlitePool, root: String, app_handle: AppHandle) {
         } else {
             files_indexed += 1;
 
-            // Collect non-dirs for pass-2 MIME enrichment.
-            if !is_dir {
+            // Only queue files whose extension is unknown for magic-byte detection.
+            if needs_magic {
                 mime_queue.push(path_str);
             }
 
@@ -163,6 +166,68 @@ async fn walk_and_index(pool: SqlitePool, root: String, app_handle: AppHandle) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/// Guess MIME type from the file extension — no I/O, instant.
+///
+/// Covers the vast majority of files found on NAS shares (photos, videos,
+/// audio, documents). Returns `None` for unknown or missing extensions so
+/// the caller can fall back to magic-byte detection.
+fn mime_from_ext(path: &std::path::Path) -> Option<String> {
+    let ext = path.extension()?.to_string_lossy().to_lowercase();
+    let mime = match ext.as_str() {
+        // Images
+        "jpg" | "jpeg" => "image/jpeg",
+        "png"          => "image/png",
+        "gif"          => "image/gif",
+        "webp"         => "image/webp",
+        "heic" | "heif"=> "image/heic",
+        "avif"         => "image/avif",
+        "tiff" | "tif" => "image/tiff",
+        "bmp"          => "image/bmp",
+        "svg"          => "image/svg+xml",
+        "ico"          => "image/x-icon",
+        "raw" | "cr2" | "nef" | "arw" | "orf" | "rw2" => "image/x-raw",
+        // Video
+        "mp4" | "m4v"  => "video/mp4",
+        "mov"          => "video/quicktime",
+        "avi"          => "video/x-msvideo",
+        "mkv"          => "video/x-matroska",
+        "webm"         => "video/webm",
+        "flv"          => "video/x-flv",
+        "wmv"          => "video/x-ms-wmv",
+        "m2ts"         => "video/mp2t",
+        // Audio
+        "mp3"          => "audio/mpeg",
+        "m4a" | "aac"  => "audio/aac",
+        "flac"         => "audio/flac",
+        "wav"          => "audio/wav",
+        "ogg" | "oga"  => "audio/ogg",
+        "opus"         => "audio/opus",
+        "wma"          => "audio/x-ms-wma",
+        "aiff" | "aif" => "audio/aiff",
+        // Documents
+        "pdf"          => "application/pdf",
+        "txt"          => "text/plain",
+        "md"           => "text/markdown",
+        "html" | "htm" => "text/html",
+        "css"          => "text/css",
+        "js" | "mjs"   => "text/javascript",
+        "ts"           => "text/typescript",
+        "json"         => "application/json",
+        "xml"          => "application/xml",
+        "csv"          => "text/csv",
+        "zip"          => "application/zip",
+        "gz" | "tgz"   => "application/gzip",
+        "tar"          => "application/x-tar",
+        "7z"           => "application/x-7z-compressed",
+        "rar"          => "application/x-rar-compressed",
+        "doc" | "docx" => "application/msword",
+        "xls" | "xlsx" => "application/vnd.ms-excel",
+        "ppt" | "pptx" => "application/vnd.ms-powerpoint",
+        _              => return None,
+    };
+    Some(mime.to_string())
+}
 
 /// Detect MIME type by reading the first 36 bytes of the file.
 ///
