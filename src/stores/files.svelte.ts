@@ -14,6 +14,7 @@ interface IndexProgress { path: string; filesIndexed: number }
 let entries    = $state<FileEntry[]>([])
 let indexedAt  = $state<number | null>(null)
 let loading    = $state(false)
+let indexing   = $state(false) // true while indexer:progress events are arriving for activePath
 let error      = $state<string | null>(null)
 let activePath = ''
 
@@ -26,8 +27,11 @@ if (typeof window !== 'undefined') {
   })
 
   listen<IndexProgress>('indexer:progress', ({ payload }) => {
-    // Reload when the currently displayed directory received new entries
-    if (activePath && payload.path === activePath) {
+    // Reload when the currently displayed directory received new entries.
+    // The indexer emits with an empty path on the final MIME-enrichment pass,
+    // which refreshes the current view regardless.
+    if (activePath && (payload.path === activePath || payload.path === '')) {
+      indexing = true
       loadDir(activePath).catch(console.error)
     }
   })
@@ -39,12 +43,15 @@ if (typeof window !== 'undefined') {
 export async function loadDir(path: string): Promise<void> {
   activePath = path
   loading    = true
+  indexing   = false // reset on explicit navigation; re-set by progress events
   error      = null
 
   try {
     const result = await listDir(path)
     entries   = result.entries
     indexedAt = result.indexedAt
+    // Stop showing "indexing" spinner once we have entries to display.
+    if (result.entries.length > 0) indexing = false
   } catch (e) {
     error = String(e)
   } finally {
@@ -60,6 +67,9 @@ export function getIndexedAt(): number | null { return indexedAt }
 
 /** True while a `list_dir` call is in flight. */
 export function isLoading(): boolean { return loading }
+
+/** True while the background indexer is actively scanning the current directory. */
+export function isIndexing(): boolean { return indexing }
 
 /** The last error string, or null if the last load succeeded. */
 export function getError(): string | null { return error }

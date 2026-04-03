@@ -31,7 +31,8 @@
       "tags":         "Tags",
       "rescan":       "Rescan",
       "scanning":     "Scanning…",
-      "scanned_ago":  "ago"
+      "scanned_ago":  "ago",
+      "indexing":     "Indexing…"
     },
     "labels": {
       "name":  "Name",

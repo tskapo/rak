@@ -5,7 +5,7 @@
 <script lang="ts">
   import VirtualList from '$lib/VirtualList.svelte'
   import FileItem    from './FileItem.svelte'
-  import { getEntries }                   from '../../stores/files.svelte'
+  import { getEntries, isLoading, isIndexing } from '../../stores/files.svelte'
   import { getPrefs, setSortBy, setSortDir } from '../../stores/folderPrefs.svelte'
   import { getFileTags }                  from '../../stores/tags.svelte'
   import { navigate }                     from '../../stores/navigation.svelte'
@@ -139,7 +139,9 @@
     <span class="lh-type">{t('browser.labels.type')}</span>
   </div>
 
-  {#if containerH > 0}
+  {#if (isLoading() || isIndexing()) && sortedEntries.length === 0}
+    <div class="detail-status">{t('browser.toolbar.indexing')}</div>
+  {:else if containerH > 0}
     <VirtualList items={sortedEntries} {itemHeight} containerHeight={containerH}>
       {#snippet children({ item: entry, index })}
         <FileItem
@@ -162,6 +164,13 @@
     outline:        none;
     display:        flex;
     flex-direction: column;
+  }
+
+  .detail-status {
+    padding:    var(--space-sm);
+    color:      var(--text-muted);
+    font-size:  var(--font-size-sm);
+    font-style: italic;
   }
 
   /* Column header row */

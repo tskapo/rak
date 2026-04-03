@@ -31,7 +31,8 @@
       "tags":        "Tags",
       "rescan":      "Réindexer",
       "scanning":    "Indexation…",
-      "scanned_ago": "il y a"
+      "scanned_ago": "il y a",
+      "indexing":    "Indexation…"
     },
     "labels": {
       "name":  "Nom",

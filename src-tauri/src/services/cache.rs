@@ -111,7 +111,7 @@ pub async fn upsert_file(pool: &SqlitePool, entry: &FileEntry, indexed_at: i64) 
              is_dir      = excluded.is_dir,
              size        = excluded.size,
              modified_at = excluded.modified_at,
-             mime_type   = excluded.mime_type,
+             mime_type   = COALESCE(excluded.mime_type, mime_type),
              indexed_at  = excluded.indexed_at",
     )
     .bind(&entry.path)
@@ -163,6 +163,16 @@ pub async fn get_dir_indexed_at(pool: &SqlitePool, dir_path: &str) -> Result<Opt
     .await?;
 
     Ok(row.get("ts"))
+}
+
+/// Update only the mime_type of a cached entry (used by the background MIME-enrichment pass).
+pub async fn update_mime(pool: &SqlitePool, path: &str, mime_type: &str) -> Result<(), sqlx::Error> {
+    sqlx::query("UPDATE file_cache SET mime_type = ? WHERE path = ?")
+        .bind(mime_type)
+        .bind(path)
+        .execute(pool)
+        .await?;
+    Ok(())
 }
 
 /// Remove a file entry from the cache (e.g. after deletion detected by watcher).

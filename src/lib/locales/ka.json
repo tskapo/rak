@@ -31,7 +31,8 @@
       "tags":        "ტეგები",
       "rescan":      "სკანირება",
       "scanning":    "სკანირება…",
-      "scanned_ago": "წინ"
+      "scanned_ago": "წინ",
+      "indexing":    "ინდექსირება…"
     },
     "labels": {
       "name":  "სახელი",

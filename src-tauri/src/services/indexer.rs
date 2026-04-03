@@ -58,11 +58,22 @@ pub async fn resolve_start_path(pool: &SqlitePool) -> String {
 // ── Private scan logic ────────────────────────────────────────────────────────
 
 /// Walk `root` recursively using an explicit stack (avoids recursion depth issues
-/// on deep directory trees). Upserts every entry into the cache and emits a
-/// `indexer:progress` event after each directory is processed.
+/// on deep directory trees).
+///
+/// Pass 1 — metadata only (no MIME reads): upserts every entry and emits
+/// `indexer:progress` every `EMIT_INTERVAL` files so the frontend can refresh
+/// incrementally. This keeps NAS navigation snappy even for large photo folders.
+///
+/// Pass 2 — MIME enrichment: runs as a separate background task after the main
+/// scan, reading 36 bytes per file. Because MIME is preserved across upserts
+/// (`COALESCE`), already-detected types are never overwritten with NULL.
 async fn walk_and_index(pool: SqlitePool, root: String, app_handle: AppHandle) {
-    let mut stack = vec![root];
-    let mut files_indexed: u64 = 0;
+    const EMIT_INTERVAL: u64 = 50;
+
+    let mut stack         = vec![root];
+    let mut files_indexed = 0u64;
+    let mut last_emit     = 0u64;
+    let mut mime_queue    = Vec::<String>::new(); // file paths for pass-2 MIME enrichment
 
     while let Some(dir_path) = stack.pop() {
         let mut reader = match tokio::fs::read_dir(&dir_path).await {
@@ -71,37 +82,51 @@ async fn walk_and_index(pool: SqlitePool, root: String, app_handle: AppHandle) {
         };
 
         while let Ok(Some(entry)) = reader.next_entry().await {
-            let path = entry.path();
+            let path     = entry.path();
             let path_str = path.to_string_lossy().into_owned();
-            let name = entry.file_name().to_string_lossy().into_owned();
+            let name     = entry.file_name().to_string_lossy().into_owned();
 
             let Ok(metadata) = entry.metadata().await else {
                 continue;
             };
 
-            let is_dir = metadata.is_dir();
-            let size = if is_dir { None } else { Some(metadata.len() as i64) };
+            let is_dir      = metadata.is_dir();
+            let size        = if is_dir { None } else { Some(metadata.len() as i64) };
             let modified_at = metadata
                 .modified()
                 .ok()
                 .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
                 .map(|d| d.as_secs() as i64);
 
-            let mime_type = if is_dir { None } else { detect_mime(&path).await };
-
+            // Pass 1: no MIME detection — kept None so COALESCE preserves any
+            // previously detected value stored in the DB.
             let file_entry = cache::FileEntry {
                 path: path_str.clone(),
                 name,
                 is_dir,
                 size,
                 modified_at,
-                mime_type,
+                mime_type: None,
             };
 
             if let Err(e) = cache::upsert_file(&pool, &file_entry, now_unix()).await {
                 eprintln!("[indexer] upsert error for {path_str}: {e}");
             } else {
                 files_indexed += 1;
+
+                // Collect non-dirs for pass-2 MIME enrichment.
+                if !is_dir {
+                    mime_queue.push(path_str.clone());
+                }
+
+                // Emit every EMIT_INTERVAL files so the frontend refreshes incrementally.
+                if files_indexed - last_emit >= EMIT_INTERVAL {
+                    let _ = app_handle.emit(
+                        "indexer:progress",
+                        IndexProgress { path: dir_path.clone(), files_indexed },
+                    );
+                    last_emit = files_indexed;
+                }
             }
 
             if is_dir {
@@ -109,14 +134,34 @@ async fn walk_and_index(pool: SqlitePool, root: String, app_handle: AppHandle) {
             }
         }
 
+        // Emit at the end of each directory regardless of the interval.
         let _ = app_handle.emit(
             "indexer:progress",
-            IndexProgress {
-                path: dir_path,
-                files_indexed,
-            },
+            IndexProgress { path: dir_path, files_indexed },
         );
+        last_emit = files_indexed;
     }
+
+    // ── Pass 2: MIME enrichment (background) ──────────────────────────────
+    // Runs after the full tree is indexed so the user sees entries immediately.
+    // Reads 36 bytes per file — tolerable on NAS since it is truly background.
+    let pool2       = pool.clone();
+    let app_handle2 = app_handle.clone();
+    tauri::async_runtime::spawn(async move {
+        for path_str in mime_queue {
+            let path = std::path::Path::new(&path_str);
+            if let Some(mime) = detect_mime(path).await {
+                if let Err(e) = cache::update_mime(&pool2, &path_str, &mime).await {
+                    eprintln!("[indexer] update_mime error for {path_str}: {e}");
+                }
+            }
+        }
+        // Final progress event so the frontend can pick up MIME-enriched entries.
+        let _ = app_handle2.emit(
+            "indexer:progress",
+            IndexProgress { path: String::new(), files_indexed },
+        );
+    });
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
