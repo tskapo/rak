@@ -50,10 +50,18 @@ export async function loadDir(path: string): Promise<void> {
     const result = await listDir(path)
     entries   = result.entries
     indexedAt = result.indexedAt
-    // Stop showing "indexing" spinner once we have entries to display.
-    if (result.entries.length > 0) indexing = false
+    if (result.entries.length > 0) {
+      // Entries available — stop the indexing spinner.
+      indexing = false
+    } else {
+      // Cache empty: a background scan was triggered by the Rust side.
+      // Keep indexing=true so the "Indexation…" spinner stays visible
+      // until the indexer emits its progress event and we reload.
+      indexing = true
+    }
   } catch (e) {
-    error = String(e)
+    error    = String(e)
+    indexing = false
   } finally {
     loading = false
   }
