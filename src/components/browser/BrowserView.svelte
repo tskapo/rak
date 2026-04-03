@@ -12,11 +12,10 @@
   import TagFilterPopover  from '../ui/TagFilterPopover.svelte'
 
   import { getCurrentPath, canGoBack, canGoForward, back, forward } from '../../stores/navigation.svelte'
-  import { loadDir, isLoading, getIndexedAt }                       from '../../stores/files.svelte'
+  import { loadDir, isLoading, getIndexedAt, getEntries }           from '../../stores/files.svelte'
   import { loadFolderPrefs, getPrefs }                              from '../../stores/folderPrefs.svelte'
   import { rescanDir }                                              from '$lib/tauri'
   import { t }                                                      from '$lib/i18n.svelte'
-  import type { FileEntry }                                         from '$lib/tauri'
 
   // ── Load directory when path changes ─────────────────────────────────────
   $effect(() => {
@@ -29,7 +28,12 @@
   })
 
   // ── Preview panel ─────────────────────────────────────────────────────────
-  let previewEntry = $state<FileEntry | null>(null)
+  // Store only the path so the entry is always derived from the live store.
+  // This ensures the preview reflects updated MIME types after pass-2 enrichment.
+  let previewPath  = $state<string | null>(null)
+  const previewEntry = $derived(
+    previewPath ? (getEntries().find(e => e.path === previewPath) ?? null) : null
+  )
 
   // ── Tag filter ────────────────────────────────────────────────────────────
   let activeTagIds    = $state<number[]>([])
@@ -135,16 +139,16 @@
   <!-- Content area + preview panel -->
   <div class="bv-content">
     {#if getPrefs().viewMode === 'list'}
-      <FileListList   {activeTagIds} onpreview={(e) => previewEntry = e} />
+      <FileListList   {activeTagIds} onpreview={(e) => previewPath = e.path} />
     {:else if getPrefs().viewMode === 'column'}
-      <FileListColumn onpreview={(e) => previewEntry = e} />
+      <FileListColumn onpreview={(e) => previewPath = e.path} />
     {:else}
-      <FileListDetail {activeTagIds} onpreview={(e) => previewEntry = e} />
+      <FileListDetail {activeTagIds} onpreview={(e) => previewPath = e.path} />
     {/if}
 
     <PreviewPanel
       entry={previewEntry}
-      onclose={() => previewEntry = null}
+      onclose={() => previewPath = null}
     />
   </div>
 </div>
