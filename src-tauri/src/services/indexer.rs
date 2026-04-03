@@ -57,12 +57,12 @@ pub async fn resolve_start_path(pool: &SqlitePool) -> String {
 
 // ── Private scan logic ────────────────────────────────────────────────────────
 
-/// Walk `root` recursively using an explicit stack (avoids recursion depth issues
-/// on deep directory trees).
+/// Index the direct children of `root` only (non-recursive).
 ///
-/// Pass 1 — metadata only (no MIME reads): upserts every entry and emits
+/// Pass 1 — metadata only (no MIME reads): upserts every direct child and emits
 /// `indexer:progress` every `EMIT_INTERVAL` files so the frontend can refresh
-/// incrementally. This keeps NAS navigation snappy even for large photo folders.
+/// incrementally. Sub-directories are recorded in the cache but not descended into;
+/// they will be scanned on demand when the user navigates into them.
 ///
 /// Pass 2 — MIME enrichment: runs as a separate background task after the main
 /// scan, reading 36 bytes per file. Because MIME is preserved across upserts
@@ -70,77 +70,70 @@ pub async fn resolve_start_path(pool: &SqlitePool) -> String {
 async fn walk_and_index(pool: SqlitePool, root: String, app_handle: AppHandle) {
     const EMIT_INTERVAL: u64 = 50;
 
-    let mut stack         = vec![root];
+    let mut reader = match tokio::fs::read_dir(&root).await {
+        Ok(r) => r,
+        Err(_) => return, // unreadable (permissions, disconnected share, etc.)
+    };
+
     let mut files_indexed = 0u64;
     let mut last_emit     = 0u64;
     let mut mime_queue    = Vec::<String>::new(); // file paths for pass-2 MIME enrichment
+    let indexed_at        = now_unix();
 
-    while let Some(dir_path) = stack.pop() {
-        let mut reader = match tokio::fs::read_dir(&dir_path).await {
-            Ok(r) => r,
-            Err(_) => continue, // skip unreadable dirs (permissions, disconnected share, etc.)
+    while let Ok(Some(entry)) = reader.next_entry().await {
+        let path     = entry.path();
+        let path_str = path.to_string_lossy().into_owned();
+        let name     = entry.file_name().to_string_lossy().into_owned();
+
+        let Ok(metadata) = entry.metadata().await else {
+            continue;
         };
 
-        while let Ok(Some(entry)) = reader.next_entry().await {
-            let path     = entry.path();
-            let path_str = path.to_string_lossy().into_owned();
-            let name     = entry.file_name().to_string_lossy().into_owned();
+        let is_dir      = metadata.is_dir();
+        let size        = if is_dir { None } else { Some(metadata.len() as i64) };
+        let modified_at = metadata
+            .modified()
+            .ok()
+            .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+            .map(|d| d.as_secs() as i64);
 
-            let Ok(metadata) = entry.metadata().await else {
-                continue;
-            };
+        // Pass 1: no MIME detection — kept None so COALESCE preserves any
+        // previously detected value stored in the DB.
+        let file_entry = cache::FileEntry {
+            path: path_str.clone(),
+            name,
+            is_dir,
+            size,
+            modified_at,
+            mime_type: None,
+        };
 
-            let is_dir      = metadata.is_dir();
-            let size        = if is_dir { None } else { Some(metadata.len() as i64) };
-            let modified_at = metadata
-                .modified()
-                .ok()
-                .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
-                .map(|d| d.as_secs() as i64);
+        if let Err(e) = cache::upsert_file(&pool, &file_entry, indexed_at).await {
+            eprintln!("[indexer] upsert error for {path_str}: {e}");
+        } else {
+            files_indexed += 1;
 
-            // Pass 1: no MIME detection — kept None so COALESCE preserves any
-            // previously detected value stored in the DB.
-            let file_entry = cache::FileEntry {
-                path: path_str.clone(),
-                name,
-                is_dir,
-                size,
-                modified_at,
-                mime_type: None,
-            };
-
-            if let Err(e) = cache::upsert_file(&pool, &file_entry, now_unix()).await {
-                eprintln!("[indexer] upsert error for {path_str}: {e}");
-            } else {
-                files_indexed += 1;
-
-                // Collect non-dirs for pass-2 MIME enrichment.
-                if !is_dir {
-                    mime_queue.push(path_str.clone());
-                }
-
-                // Emit every EMIT_INTERVAL files so the frontend refreshes incrementally.
-                if files_indexed - last_emit >= EMIT_INTERVAL {
-                    let _ = app_handle.emit(
-                        "indexer:progress",
-                        IndexProgress { path: dir_path.clone(), files_indexed },
-                    );
-                    last_emit = files_indexed;
-                }
+            // Collect non-dirs for pass-2 MIME enrichment.
+            if !is_dir {
+                mime_queue.push(path_str);
             }
 
-            if is_dir {
-                stack.push(path_str);
+            // Emit every EMIT_INTERVAL files so the frontend refreshes incrementally.
+            if files_indexed - last_emit >= EMIT_INTERVAL {
+                let _ = app_handle.emit(
+                    "indexer:progress",
+                    IndexProgress { path: root.clone(), files_indexed },
+                );
+                last_emit = files_indexed;
             }
         }
-
-        // Emit at the end of each directory regardless of the interval.
-        let _ = app_handle.emit(
-            "indexer:progress",
-            IndexProgress { path: dir_path, files_indexed },
-        );
-        last_emit = files_indexed;
     }
+
+    // Final emit for this directory.
+    let _ = app_handle.emit(
+        "indexer:progress",
+        IndexProgress { path: root.clone(), files_indexed },
+    );
 
     // ── Pass 2: MIME enrichment (background) ──────────────────────────────
     // Runs after the full tree is indexed so the user sees entries immediately.
