@@ -14,10 +14,11 @@
   import type { FileEntry } from '$lib/tauri'
 
   interface Props {
-    onpreview?: (entry: FileEntry) => void
+    activeTagIds?: number[]
+    onpreview?:    (entry: FileEntry) => void
   }
 
-  const { onpreview }: Props = $props()
+  const { activeTagIds = [], onpreview }: Props = $props()
 
   // ── Container height for VirtualList ─────────────────────────────────────
   let containerEl  = $state<HTMLElement | null>(null)
@@ -47,8 +48,18 @@
     return () => obs.disconnect()
   })
 
-  // ── Sorting ───────────────────────────────────────────────────────────────
-  const sortedEntries = $derived(sortEntries(getEntries(), getPrefs().sortBy, getPrefs().sortDir))
+  // ── Per-row tag loading ───────────────────────────────────────────────────
+  let tagCache = $state<Record<string, import('$lib/tauri').Tag[]>>({})
+
+  // ── Sorting + tag filter ─────────────────────────────────────────────────
+  const sortedEntries = $derived.by(() => {
+    const sorted = sortEntries(getEntries(), getPrefs().sortBy, getPrefs().sortDir)
+    if (activeTagIds.length === 0) return sorted
+    return sorted.filter(e => {
+      const tags = tagCache[e.path] ?? []
+      return activeTagIds.every(id => tags.some(t => t.id === id))
+    })
+  })
 
   function sortEntries(entries: FileEntry[], sortBy: string, sortDir: string): FileEntry[] {
     return [...entries].sort((a, b) => {
@@ -90,12 +101,10 @@
     if (entry.isDir) navigate(entry.path).catch(console.error)
   }
 
-  // ── Per-row tag loading ───────────────────────────────────────────────────
-  let tagCache = $state<Record<string, import('$lib/tauri').Tag[]>>({})
-
-  // Pre-fetch tags for all visible entries whenever the list changes
+  // Pre-fetch tags for ALL entries (not just sorted/filtered) so the tag filter
+  // has data to work with even before the user applies a filter.
   $effect(() => {
-    for (const entry of sortedEntries) {
+    for (const entry of getEntries()) {
       if (!(entry.path in tagCache)) {
         getFileTags(entry.path)
           .then(tags => { tagCache = { ...tagCache, [entry.path]: tags } })

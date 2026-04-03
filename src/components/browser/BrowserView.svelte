@@ -3,12 +3,13 @@
      Délègue toute la logique métier aux stores navigationStore et filesStore. -->
 
 <script lang="ts">
-  import Breadcrumb    from '../ui/Breadcrumb.svelte'
-  import ViewToggle    from './ViewToggle.svelte'
-  import FileListList  from './FileListList.svelte'
-  import FileListColumn from './FileListColumn.svelte'
-  import FileListDetail from './FileListDetail.svelte'
-  import PreviewPanel  from '../preview/PreviewPanel.svelte'
+  import Breadcrumb        from '../ui/Breadcrumb.svelte'
+  import ViewToggle        from './ViewToggle.svelte'
+  import FileListList      from './FileListList.svelte'
+  import FileListColumn    from './FileListColumn.svelte'
+  import FileListDetail    from './FileListDetail.svelte'
+  import PreviewPanel      from '../preview/PreviewPanel.svelte'
+  import TagFilterPopover  from '../ui/TagFilterPopover.svelte'
 
   import { getCurrentPath, canGoBack, canGoForward, back, forward } from '../../stores/navigation.svelte'
   import { loadDir, isLoading, getIndexedAt }                       from '../../stores/files.svelte'
@@ -27,6 +28,23 @@
 
   // ── Preview panel ─────────────────────────────────────────────────────────
   let previewEntry = $state<FileEntry | null>(null)
+
+  // ── Tag filter ────────────────────────────────────────────────────────────
+  let activeTagIds    = $state<number[]>([])
+  let showTagFilter   = $state(false)
+  let tagBtnEl        = $state<HTMLElement | null>(null)
+  let tagPopoverX     = $state(0)
+  let tagPopoverY     = $state(0)
+
+  function toggleTagFilter() {
+    if (showTagFilter) { showTagFilter = false; return }
+    if (tagBtnEl) {
+      const r = tagBtnEl.getBoundingClientRect()
+      tagPopoverX = r.left
+      tagPopoverY = r.bottom + 4
+    }
+    showTagFilter = true
+  }
 
   // ── Rescan ────────────────────────────────────────────────────────────────
   let rescanning = $state(false)
@@ -76,25 +94,50 @@
         {#if age}
           <span class="bv-scan-time">{age} {t('browser.toolbar.scanned_ago')}</span>
         {/if}
-        <button
-          class="bv-rescan-btn"
-          onclick={handleRescan}
-          title={t('browser.toolbar.rescan')}
-        >↺</button>
       {/if}
+      <button
+        class="bv-rescan-btn"
+        class:spinning={isLoading() || rescanning}
+        disabled={rescanning}
+        onclick={handleRescan}
+        title={t('browser.toolbar.rescan')}
+      >↺</button>
     </div>
+
+    <button
+      bind:this={tagBtnEl}
+      class="bv-tags-btn"
+      class:active={activeTagIds.length > 0}
+      onclick={toggleTagFilter}
+      title={t('browser.toolbar.tags')}
+    >
+      {t('browser.toolbar.tags')}
+      {#if activeTagIds.length > 0}
+        <span class="bv-tags-badge">{activeTagIds.length}</span>
+      {/if}
+    </button>
 
     <ViewToggle />
   </div>
 
+  {#if showTagFilter}
+    <TagFilterPopover
+      {activeTagIds}
+      x={tagPopoverX}
+      y={tagPopoverY}
+      onchange={(ids) => activeTagIds = ids}
+      onclose={() => showTagFilter = false}
+    />
+  {/if}
+
   <!-- Content area + preview panel -->
   <div class="bv-content">
     {#if getPrefs().viewMode === 'list'}
-      <FileListList   onpreview={(e) => previewEntry = e} />
+      <FileListList   {activeTagIds} onpreview={(e) => previewEntry = e} />
     {:else if getPrefs().viewMode === 'column'}
       <FileListColumn onpreview={(e) => previewEntry = e} />
     {:else}
-      <FileListDetail onpreview={(e) => previewEntry = e} />
+      <FileListDetail {activeTagIds} onpreview={(e) => previewEntry = e} />
     {/if}
 
     <PreviewPanel
@@ -165,6 +208,42 @@
     transition:  color var(--transition-fast);
   }
   .bv-rescan-btn:hover { color: var(--text); }
+  .bv-rescan-btn.spinning {
+    animation: spin 0.8s linear infinite;
+    color:     var(--accent);
+  }
+
+  .bv-tags-btn {
+    display:       flex;
+    align-items:   center;
+    gap:           0.25rem;
+    background:    none;
+    border:        1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor:        pointer;
+    font-family:   inherit;
+    font-size:     var(--font-size-sm);
+    color:         var(--text-dim);
+    padding:       0.1rem 0.4rem;
+    transition:    color var(--transition-fast), border-color var(--transition-fast);
+    flex-shrink:   0;
+  }
+
+  .bv-tags-btn:hover        { color: var(--text); border-color: var(--text-dim); }
+  .bv-tags-btn.active       { color: var(--accent); border-color: var(--accent); }
+
+  .bv-tags-badge {
+    display:       inline-flex;
+    align-items:   center;
+    justify-content: center;
+    width:         1rem;
+    height:        1rem;
+    border-radius: 50%;
+    background:    var(--accent);
+    color:         #fff;
+    font-size:     0.625rem;
+    font-weight:   600;
+  }
 
   /* Content */
   .bv-content {

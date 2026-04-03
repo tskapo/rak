@@ -13,10 +13,11 @@
   import type { FileEntry }               from '$lib/tauri'
 
   interface Props {
-    onpreview?: (entry: FileEntry) => void
+    activeTagIds?: number[]
+    onpreview?:    (entry: FileEntry) => void
   }
 
-  const { onpreview }: Props = $props()
+  const { activeTagIds = [], onpreview }: Props = $props()
 
   // ── Container height ──────────────────────────────────────────────────────
   let containerEl = $state<HTMLElement | null>(null)
@@ -43,8 +44,28 @@
     return () => obs.disconnect()
   })
 
-  // ── Sorting ───────────────────────────────────────────────────────────────
-  const sortedEntries = $derived(sortEntries(getEntries(), getPrefs().sortBy, getPrefs().sortDir))
+  // ── Tag pre-fetch ─────────────────────────────────────────────────────────
+  let tagCache = $state<Record<string, import('$lib/tauri').Tag[]>>({})
+
+  $effect(() => {
+    for (const entry of getEntries()) {
+      if (!(entry.path in tagCache)) {
+        getFileTags(entry.path)
+          .then(tags => { tagCache = { ...tagCache, [entry.path]: tags } })
+          .catch(() => {})
+      }
+    }
+  })
+
+  // ── Sorting + tag filter ─────────────────────────────────────────────────
+  const sortedEntries = $derived.by(() => {
+    const sorted = sortEntries(getEntries(), getPrefs().sortBy, getPrefs().sortDir)
+    if (activeTagIds.length === 0) return sorted
+    return sorted.filter(e => {
+      const tags = tagCache[e.path] ?? []
+      return activeTagIds.every(id => tags.some(t => t.id === id))
+    })
+  })
 
   function sortEntries(entries: FileEntry[], sortBy: string, sortDir: string): FileEntry[] {
     return [...entries].sort((a, b) => {
@@ -95,19 +116,6 @@
   function openEntry(entry: FileEntry) {
     if (entry.isDir) navigate(entry.path).catch(console.error)
   }
-
-  // ── Tag pre-fetch ─────────────────────────────────────────────────────────
-  let tagCache = $state<Record<string, import('$lib/tauri').Tag[]>>({})
-
-  $effect(() => {
-    for (const entry of sortedEntries) {
-      if (!(entry.path in tagCache)) {
-        getFileTags(entry.path)
-          .then(tags => { tagCache = { ...tagCache, [entry.path]: tags } })
-          .catch(() => {})
-      }
-    }
-  })
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->

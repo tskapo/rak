@@ -57,7 +57,9 @@
     "manage":          "ეტიკეტების მართვა…",
     "manager_title":   "ეტიკეტების მართვა",
     "new_placeholder": "ეტიკეტის სახელი",
-    "color_label":     "ფერი"
+    "color_label":     "ფერი",
+    "no_tags":         "ეტიკეტი არ არის",
+    "clear_filter":    "ფილტრის გასუფთავება"
   },
   "status": {
     "items":         "{n} ელემენტი",

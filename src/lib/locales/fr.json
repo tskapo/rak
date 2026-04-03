@@ -57,7 +57,9 @@
     "manage":          "Gérer les étiquettes…",
     "manager_title":   "Gérer les étiquettes",
     "new_placeholder": "Nom de l'étiquette",
-    "color_label":     "Couleur"
+    "color_label":     "Couleur",
+    "no_tags":         "Aucune étiquette",
+    "clear_filter":    "Effacer le filtre"
   },
   "status": {
     "items":         "{n} élément(s)",

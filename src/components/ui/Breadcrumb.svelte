@@ -4,6 +4,21 @@
 
 <script lang="ts">
   import { breadcrumbs, navigate } from '../../stores/navigation.svelte'
+  import { getDiskLabelFor }       from '../../stores/diskLabels.svelte'
+
+  /** If `path` is a direct child of /Volumes, return its label color; otherwise null. */
+  function volumeColor(path: string): string | null {
+    const parts = path.split('/').filter(Boolean)
+    if (parts[0] !== 'Volumes' || parts.length !== 2) return null
+    return getDiskLabelFor(path)?.color ?? '#888'
+  }
+
+  /** If `path` is a volume, return its custom name; otherwise the raw segment label. */
+  function displayLabel(path: string, rawLabel: string): string {
+    const parts = path.split('/').filter(Boolean)
+    if (parts[0] !== 'Volumes' || parts.length !== 2) return rawLabel
+    return getDiskLabelFor(path)?.customName ?? rawLabel
+  }
 
   const MAX_SHOWN = 4  // show root + last 3; middle segments → …
 
@@ -23,8 +38,10 @@
   {#each visible as crumb, i (crumb.path || i)}
     {#if i > 0}<span class="bc-sep">›</span>{/if}
     {#if crumb.path}
+      {@const dot = volumeColor(crumb.path)}
       <button class="bc-item" onclick={() => navigate(crumb.path).catch(console.error)}>
-        {crumb.label}
+        {#if dot}<span class="bc-dot" style:background={dot}></span>{/if}
+        {displayLabel(crumb.path, crumb.label)}
       </button>
     {:else}
       <span class="bc-ellipsis">…</span>
@@ -66,6 +83,16 @@
 
   .bc-item:last-child { color: var(--text); font-weight: 500; cursor: default; }
   .bc-item:not(:last-child):hover { color: var(--text); }
+
+  .bc-dot {
+    display:       inline-block;
+    width:         0.4375rem;
+    height:        0.4375rem;
+    border-radius: 50%;
+    flex-shrink:   0;
+    vertical-align: middle;
+    margin-right:  0.2rem;
+  }
 
   .bc-ellipsis {
     color:      var(--text-muted);

@@ -4,9 +4,11 @@
 
 <script lang="ts">
   import type { FileEntry, Tag } from '$lib/tauri'
+  import { openPath, deleteEntry } from '$lib/tauri'
   import TagBadge  from '../ui/TagBadge.svelte'
   import TagPicker from '../ui/TagPicker.svelte'
   import { t }     from '$lib/i18n.svelte'
+  import { navigate } from '../../stores/navigation.svelte'
 
   interface Props {
     entry:      FileEntry
@@ -76,23 +78,46 @@
   }
 
   // ── Context menu ──────────────────────────────────────────────────────────
-  let menuX        = $state(0)
-  let menuY        = $state(0)
-  let showMenu     = $state(false)
-  let showTagPicker = $state(false)
+  let menuX          = $state(0)
+  let menuY          = $state(0)
+  let showMenu       = $state(false)
+  let showTagPicker  = $state(false)
+  let confirmingDelete = $state(false)
 
   function handleContextMenu(e: MouseEvent) {
     e.preventDefault()
-    menuX    = e.clientX
-    menuY    = e.clientY
-    showMenu = true
+    menuX           = e.clientX
+    menuY           = e.clientY
+    showMenu        = true
+    confirmingDelete = false
   }
 
-  function closeMenu() { showMenu = false }
+  function closeMenu() { showMenu = false; confirmingDelete = false }
 
   function openTagPicker() {
     showMenu      = false
     showTagPicker = true
+  }
+
+  async function handleOpen() {
+    closeMenu()
+    if (entry.isDir) await navigate(entry.path).catch(console.error)
+    else             await openPath(entry.path).catch(console.error)
+  }
+
+  function handlePreview() {
+    closeMenu()
+    onpreview?.(entry)
+  }
+
+  async function handleCopyPath() {
+    closeMenu()
+    await navigator.clipboard.writeText(entry.path).catch(console.error)
+  }
+
+  async function handleDelete() {
+    closeMenu()
+    await deleteEntry(entry.path).catch(console.error)
   }
 </script>
 
@@ -128,7 +153,23 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div class="ctx-backdrop" role="presentation" onclick={closeMenu}></div>
   <menu class="ctx-menu" style:left="{menuX}px" style:top="{menuY}px">
+    <li><button class="ctx-item" onclick={handleOpen}>{t('actions.open')}</button></li>
+    {#if !entry.isDir}
+      <li><button class="ctx-item" onclick={handlePreview}>{t('actions.preview')}</button></li>
+    {/if}
+    <li role="separator" class="ctx-sep"></li>
     <li><button class="ctx-item" onclick={openTagPicker}>{t('actions.tag')}</button></li>
+    <li><button class="ctx-item" onclick={handleCopyPath}>{t('actions.copy_path')}</button></li>
+    <li role="separator" class="ctx-sep"></li>
+    {#if confirmingDelete}
+      <li class="ctx-confirm">
+        <span class="ctx-confirm-label">{t('actions.delete')} ?</span>
+        <button class="ctx-btn ctx-btn-danger" onclick={handleDelete}>{t('actions.ok')}</button>
+        <button class="ctx-btn" onclick={() => confirmingDelete = false}>{t('actions.cancel')}</button>
+      </li>
+    {:else}
+      <li><button class="ctx-item ctx-item-danger" onclick={() => confirmingDelete = true}>{t('actions.delete')}</button></li>
+    {/if}
   </menu>
 {/if}
 
@@ -222,4 +263,42 @@
   }
 
   .ctx-item:hover { background: var(--bg-hover); }
+  .ctx-item-danger { color: var(--danger, #d9534f); }
+  .ctx-item-danger:hover { background: var(--danger-bg, rgba(217,83,79,.08)); }
+
+  .ctx-sep {
+    height:     1px;
+    margin:     var(--space-xs) 0;
+    background: var(--border);
+  }
+
+  .ctx-confirm {
+    display:     flex;
+    align-items: center;
+    gap:         var(--space-xs);
+    padding:     var(--space-xs) var(--space-sm);
+  }
+
+  .ctx-confirm-label {
+    flex:      1;
+    font-size: var(--font-size-base);
+    color:     var(--danger, #d9534f);
+  }
+
+  .ctx-btn {
+    padding:       0.15rem 0.4rem;
+    border:        1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background:    var(--bg-toolbar);
+    font-family:   inherit;
+    font-size:     var(--font-size-sm);
+    color:         var(--text);
+    cursor:        pointer;
+  }
+
+  .ctx-btn-danger {
+    background: var(--danger, #d9534f);
+    border-color: var(--danger, #d9534f);
+    color: #fff;
+  }
 </style>

@@ -57,7 +57,9 @@
     "manage":           "Manage labels…",
     "manager_title":    "Manage labels",
     "new_placeholder":  "Label name",
-    "color_label":      "Color"
+    "color_label":      "Color",
+    "no_tags":          "No labels yet",
+    "clear_filter":     "Clear filter"
   },
   "status": {
     "items":         "{n} items",
