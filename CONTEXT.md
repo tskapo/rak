@@ -308,15 +308,26 @@ Hauteur fixe par item :
 - Affiché dans la sidebar et dans une vue dédiée `/recent`
 - Limité à 50 entrées (FIFO)
 
-### Icones
+
+### TODO
+#### Divers
+
+- Détecter les aplications et afficher leurs icones (pas la peine de tout faire en synchrone, on privilégie l'affichage du contenu, ce qui veut dire, on affiche d'abord l'arborescence et petit à petit, on continue à indexer en arrière-plan et si on détecte que c'est une application extraire son icone et appliquer à l'élément)
+- lorsqu'on détecte un volume macOS, afficher quelque part un bouton qui permet à l'utilisateur de synchroniser les tags MacOS => räk, toujours avec la même philosophie, c'est-à-dire, on ne fiche pas l'écran, on index en arrière, plan et petit à petit, on enrichit l'information des fichiers et des dossiers
+- ajouter un système d'aperçu qui fait cet aperçu dans un modal presque fullscreen
+
+#### Icones
 - Gestionnaire d'icônes
 - Utilisateur peut definir les icônes pour chaque extension
 - Utilsateur peut attribuer une icône à un élement
 
-### Views
+#### Views
 - Split view (2, 3, 4)
 - Tabs
 
+### Bugs
+- le changement de l'élément doit automatiquement déclencher le changement de la vignette
+- si on change le mot d'affichage en colonne ou un détail et on commence à naviguer le mode est remis "en liste"
 ---
 
 ## Philosophie de code

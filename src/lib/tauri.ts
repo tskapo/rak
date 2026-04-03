@@ -113,6 +113,27 @@ export async function rescanDir(path: string): Promise<void> {
   return invoke('rescan_dir', { path })
 }
 
+/**
+ * Open `path` with the system's default application.
+ *
+ * @throws string — if the OS command fails to spawn
+ */
+export async function openPath(path: string): Promise<void> {
+  return invoke('open_path', { path })
+}
+
+/**
+ * Permanently delete the file or directory at `path`.
+ *
+ * Directories are deleted recursively. The entry is also removed from the
+ * SQLite cache so the UI reflects the deletion on the next `listDir` call.
+ *
+ * @throws string — if the file cannot be deleted or does not exist
+ */
+export async function deleteEntry(path: string): Promise<void> {
+  return invoke('delete_entry', { path })
+}
+
 // ── Folder preferences commands ───────────────────────────────────────────────
 
 /**

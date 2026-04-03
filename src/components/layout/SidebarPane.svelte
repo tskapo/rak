@@ -4,9 +4,10 @@
      Clic droit sur un volume → édition inline du label (nom + couleur). -->
 
 <script lang="ts">
-  import RecentList from '../ui/RecentList.svelte'
-  import TreeNode   from './TreeNode.svelte'
-  import { listVolumes, type FileEntry, type DiskLabel } from '$lib/tauri'
+  import RecentList        from '../ui/RecentList.svelte'
+  import TreeNode          from './TreeNode.svelte'
+  import DiskLabelPopover  from '../ui/DiskLabelPopover.svelte'
+  import { listVolumes, type FileEntry } from '$lib/tauri'
   import { loadDiskLabel, getDiskLabelFor, saveDiskLabelFor } from '../../stores/diskLabels.svelte'
   import { getFavorites, addFavorite, removeFavorite } from '../../stores/appPrefs.svelte'
   import { getCurrentPath, navigate } from '../../stores/navigation.svelte'
@@ -25,34 +26,15 @@
     }).catch(() => {})
   })
 
-  // ── Disk label inline editor ───────────────────────────────────────────────
-  let editingVolume  = $state<string | null>(null)
-  let editLabelName  = $state('')
-  let editLabelColor = $state('#6c8ebf')
+  // ── Disk label popover ─────────────────────────────────────────────────────
+  let popoverVol = $state<FileEntry | null>(null)
+  let popoverX   = $state(0)
+  let popoverY   = $state(0)
 
-  function startEditLabel(vol: FileEntry) {
-    const existing = getDiskLabelFor(vol.path)
-    editingVolume  = vol.path
-    editLabelName  = existing?.customName ?? vol.name
-    editLabelColor = existing?.color      ?? '#6c8ebf'
-  }
-
-  async function saveLabelEdit() {
-    if (!editingVolume) return
-    const label: DiskLabel = {
-      path:       editingVolume,
-      color:      editLabelColor,
-      customName: editLabelName.trim() || undefined,
-    }
-    await saveDiskLabelFor(label).catch(console.error)
-    editingVolume = null
-  }
-
-  function cancelLabelEdit() { editingVolume = null }
-
-  function handleLabelKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter')  { e.preventDefault(); saveLabelEdit() }
-    if (e.key === 'Escape') { e.preventDefault(); cancelLabelEdit() }
+  function openDiskPopover(vol: FileEntry, e: MouseEvent) {
+    popoverVol = vol
+    popoverX   = e.clientX
+    popoverY   = e.clientY
   }
 
   // ── Favorites ─────────────────────────────────────────────────────────────
@@ -68,61 +50,6 @@
 </script>
 
 <aside class="sidebar">
-
-  <!-- ── Devices ──────────────────────────────────────────────────────────── -->
-  <section class="sb-section">
-    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-    <div class="sb-section-header" role="button" tabindex="-1" onclick={() => showDevices = !showDevices}>
-      <span class="sb-section-title">{t('sidebar.devices')}</span>
-      <span class="sb-chevron">{showDevices ? '▾' : '▸'}</span>
-    </div>
-
-    {#if showDevices}
-      <ul class="sb-list">
-        {#each volumes as vol (vol.path)}
-          {@const label = getDiskLabelFor(vol.path)}
-          <li>
-            {#if editingVolume === vol.path}
-              <!-- Inline label editor -->
-              <div class="sb-label-edit">
-                <input type="color" class="sb-color-input" bind:value={editLabelColor} />
-                <input
-                  class="sb-name-input"
-                  type="text"
-                  bind:value={editLabelName}
-                  onkeydown={handleLabelKeydown}
-                  autocomplete="off"
-                />
-                <button class="sb-btn" onclick={saveLabelEdit}>{t('actions.save')}</button>
-                <button class="sb-btn" onclick={cancelLabelEdit}>{t('actions.cancel')}</button>
-              </div>
-            {:else}
-              <!-- svelte-ignore a11y_click_events_have_key_events a11y_interactive_supports_focus -->
-              <div
-                class="sb-item sb-volume"
-                class:active={getCurrentPath().startsWith(vol.path)}
-                role="button"
-                tabindex="-1"
-                onclick={() => navigate(vol.path).catch(console.error)}
-                oncontextmenu={(e) => { e.preventDefault(); startEditLabel(vol) }}
-              >
-                <span
-                  class="sb-dot"
-                  style:background={label?.color ?? '#888'}
-                ></span>
-                <span class="sb-label">{label?.customName ?? vol.name}</span>
-              </div>
-
-              <!-- Collapsible tree under this volume -->
-              <ul class="sb-tree">
-                <TreeNode entry={vol} depth={0} />
-              </ul>
-            {/if}
-          </li>
-        {/each}
-      </ul>
-    {/if}
-  </section>
 
   <!-- ── Favorites ─────────────────────────────────────────────────────────── -->
   <section class="sb-section">
@@ -154,6 +81,42 @@
           </li>
         {:else}
           <li class="sb-empty">Right-click folder to remove</li>
+        {/each}
+      </ul>
+    {/if}
+  </section>
+
+  <!-- ── Devices ──────────────────────────────────────────────────────────── -->
+  <section class="sb-section">
+    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+    <div class="sb-section-header" role="button" tabindex="-1" onclick={() => showDevices = !showDevices}>
+      <span class="sb-section-title">{t('sidebar.devices')}</span>
+      <span class="sb-chevron">{showDevices ? '▾' : '▸'}</span>
+    </div>
+
+    {#if showDevices}
+      <ul class="sb-list">
+        {#each volumes as vol (vol.path)}
+          {@const label = getDiskLabelFor(vol.path)}
+          <li>
+            <!-- svelte-ignore a11y_click_events_have_key_events a11y_interactive_supports_focus -->
+            <div
+              class="sb-item sb-volume"
+              class:active={getCurrentPath().startsWith(vol.path)}
+              role="button"
+              tabindex="-1"
+              onclick={() => navigate(vol.path).catch(console.error)}
+              ondblclick={(e) => { e.preventDefault(); openDiskPopover(vol, e) }}
+            >
+              <span class="sb-dot" style:background={label?.color ?? '#888'}></span>
+              <span class="sb-label">{label?.customName ?? vol.name}</span>
+            </div>
+
+            <!-- Collapsible tree under this volume -->
+            <ul class="sb-tree">
+              <TreeNode entry={vol} depth={0} />
+            </ul>
+          </li>
         {/each}
       </ul>
     {/if}
@@ -194,6 +157,16 @@
     <LangPicker />
   </div>
 
+  {#if popoverVol}
+    <DiskLabelPopover
+      path={popoverVol.path}
+      initialColor={getDiskLabelFor(popoverVol.path)?.color}
+      initialName={getDiskLabelFor(popoverVol.path)?.customName ?? popoverVol.name}
+      x={popoverX}
+      y={popoverY}
+      onclose={() => popoverVol = null}
+    />
+  {/if}
 </aside>
 
 <style>
@@ -300,53 +273,6 @@
     padding:    0;
     list-style: none;
   }
-
-  /* Inline label editor */
-  .sb-label-edit {
-    display:    flex;
-    align-items: center;
-    gap:        var(--space-xs);
-    padding:    var(--space-xs) var(--space-sm);
-  }
-
-  .sb-color-input {
-    width:         1.5rem;
-    height:        1.5rem;
-    border:        1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding:       0;
-    cursor:        pointer;
-    background:    none;
-    flex-shrink:   0;
-  }
-
-  .sb-name-input {
-    flex:          1;
-    border:        1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background:    var(--bg);
-    color:         var(--text);
-    font-family:   inherit;
-    font-size:     var(--font-size-sm);
-    padding:       0.15rem var(--space-xs);
-    outline:       none;
-    min-width:     0;
-  }
-  .sb-name-input:focus { border-color: var(--accent); }
-
-  .sb-btn {
-    background:    none;
-    border:        1px solid var(--border);
-    border-radius: var(--radius-sm);
-    cursor:        pointer;
-    font-family:   inherit;
-    font-size:     var(--font-size-xs);
-    color:         var(--text-dim);
-    padding:       0.1rem var(--space-xs);
-    white-space:   nowrap;
-    flex-shrink:   0;
-  }
-  .sb-btn:hover { background: var(--bg-hover); }
 
   .sb-more-btn {
     display:     block;

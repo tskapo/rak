@@ -74,6 +74,8 @@ pub fn run() {
             commands::fs::get_metadata,
             commands::fs::read_file_chunk,
             commands::fs::rescan_dir,
+            commands::fs::open_path,
+            commands::fs::delete_entry,
             // Folder + app preferences
             commands::prefs::get_folder_prefs,
             commands::prefs::save_folder_prefs,

@@ -168,6 +168,60 @@ async fn list_volumes_macos() -> Result<Vec<cache::FileEntry>, String> {
     Ok(entries)
 }
 
+/// Open `path` with the system's default application.
+///
+/// Uses `open` on macOS, `xdg-open` on Linux, and `explorer` on Windows.
+#[tauri::command]
+pub async fn open_path(path: String) -> Result<(), String> {
+    let cmd = if cfg!(target_os = "macos") {
+        "open"
+    } else if cfg!(target_os = "windows") {
+        "explorer"
+    } else {
+        "xdg-open"
+    };
+
+    std::process::Command::new(cmd)
+        .arg(&path)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+/// Delete a file or directory (recursively for directories).
+///
+/// Removes the entry from the SQLite cache after deletion so the UI refreshes
+/// on the next `list_dir` call.
+#[tauri::command]
+pub async fn delete_entry(
+    path:  String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let metadata = tokio::fs::metadata(&path)
+        .await
+        .map_err(|e| format!("cannot stat {path}: {e}"))?;
+
+    if metadata.is_dir() {
+        tokio::fs::remove_dir_all(&path)
+            .await
+            .map_err(|e| format!("cannot delete directory {path}: {e}"))?;
+        cache::remove_children(&state.db, &path)
+            .await
+            .map_err(|e| e.to_string())?;
+    } else {
+        tokio::fs::remove_file(&path)
+            .await
+            .map_err(|e| format!("cannot delete {path}: {e}"))?;
+    }
+
+    cache::remove_file(&state.db, &path)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /// Build a `FileEntry` directly from filesystem metadata (no cache involved).

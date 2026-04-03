@@ -173,6 +173,12 @@ body {
   --shadow-xl:   0 16px 48px rgba(0, 0, 0, 0.20);
 }
 
+/* ── Animations ──────────────────────────────────────────────────────────── */
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ── Scrollbar (WebKit) ──────────────────────────────────────────────────── */
 
 ::-webkit-scrollbar              { width: var(--scrollbar-w); }
