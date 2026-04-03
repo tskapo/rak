@@ -22,8 +22,10 @@
   $effect(() => {
     const path = getCurrentPath()
     if (!path) return
-    loadFolderPrefs(path).catch(console.error)
-    loadDir(path).catch(console.error)
+    // Await folder prefs first so sort settings are ready before the list renders.
+    loadFolderPrefs(path)
+      .catch(console.error)
+      .then(() => loadDir(path).catch(console.error))
   })
 
   // ── Preview panel ─────────────────────────────────────────────────────────
