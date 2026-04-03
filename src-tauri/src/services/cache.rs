@@ -314,6 +314,15 @@ pub async fn get_app_prefs(pool: &SqlitePool) -> Result<AppPrefs, sqlx::Error> {
     Ok(AppPrefs { theme, locale, ui_scale, watch_recursive, first_launch })
 }
 
+/// Return the raw string value for a single app preference key, or None if not set.
+pub async fn get_app_pref_value(pool: &SqlitePool, key: &str) -> Result<Option<String>, sqlx::Error> {
+    let row = sqlx::query("SELECT value FROM app_prefs WHERE key = ?")
+        .bind(key)
+        .fetch_optional(pool)
+        .await?;
+    Ok(row.map(|r| r.get("value")))
+}
+
 /// Persist a single app preference key/value pair.
 pub async fn save_app_pref(pool: &SqlitePool, key: &str, value: &str) -> Result<(), sqlx::Error> {
     sqlx::query(

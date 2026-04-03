@@ -70,6 +70,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             // Filesystem
             commands::fs::list_dir,
+            commands::fs::list_volumes,
             commands::fs::get_metadata,
             commands::fs::read_file_chunk,
             commands::fs::rescan_dir,
@@ -77,6 +78,7 @@ pub fn run() {
             commands::prefs::get_folder_prefs,
             commands::prefs::save_folder_prefs,
             commands::prefs::get_app_prefs,
+            commands::prefs::get_app_pref,
             commands::prefs::save_app_pref,
             // Recents
             commands::recent::get_recents,

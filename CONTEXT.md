@@ -313,6 +313,10 @@ Hauteur fixe par item :
 - Utilisateur peut definir les icônes pour chaque extension
 - Utilsateur peut attribuer une icône à un élement
 
+### Views
+- Split view (2, 3, 4)
+- Tabs
+
 ---
 
 ## Philosophie de code

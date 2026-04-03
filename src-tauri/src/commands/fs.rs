@@ -116,6 +116,58 @@ pub async fn rescan_dir(
     Ok(())
 }
 
+/// Return the mounted volumes visible to the user.
+///
+/// On macOS this reads `/Volumes`; on other platforms it returns an empty list.
+/// Each entry has `is_dir = true` and `size = None`.
+#[tauri::command]
+pub async fn list_volumes() -> Result<Vec<cache::FileEntry>, String> {
+    #[cfg(target_os = "macos")]
+    {
+        list_volumes_macos().await
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Ok(Vec::new())
+    }
+}
+
+#[cfg(target_os = "macos")]
+async fn list_volumes_macos() -> Result<Vec<cache::FileEntry>, String> {
+    use std::time::UNIX_EPOCH;
+
+    let mut entries = Vec::new();
+    let mut rd = tokio::fs::read_dir("/Volumes")
+        .await
+        .map_err(|e| e.to_string())?;
+
+    while let Ok(Some(entry)) = rd.next_entry().await {
+        let path = entry.path();
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        let modified_at = tokio::fs::metadata(&path)
+            .await
+            .ok()
+            .and_then(|m| m.modified().ok())
+            .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+            .map(|d| d.as_secs() as i64);
+
+        entries.push(cache::FileEntry {
+            path:       path.to_string_lossy().into_owned(),
+            name,
+            is_dir:     true,
+            size:       None,
+            modified_at,
+            mime_type:  None,
+        });
+    }
+
+    entries.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(entries)
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /// Build a `FileEntry` directly from filesystem metadata (no cache involved).

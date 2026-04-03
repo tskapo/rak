@@ -50,6 +50,19 @@ pub async fn get_app_prefs(state: State<'_, AppState>) -> Result<AppPrefs, Strin
         .map_err(|e| e.to_string())
 }
 
+/// Return the raw string value of a single global preference key.
+///
+/// Returns `null` on the frontend if the key has never been saved.
+#[tauri::command]
+pub async fn get_app_pref(
+    key:   String,
+    state: State<'_, AppState>,
+) -> Result<Option<String>, String> {
+    cache::get_app_pref_value(&state.db, &key)
+        .await
+        .map_err(|e| e.to_string())
+}
+
 /// Persist a single global preference by key.
 ///
 /// Reserved keys: `"theme"` (`"light"` | `"dark"` | `"system"`),

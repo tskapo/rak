@@ -66,6 +66,15 @@ export async function listDir(path: string): Promise<DirResult> {
 }
 
 /**
+ * Return the mounted volumes visible to the user (macOS: reads /Volumes).
+ *
+ * @returns Array of FileEntry with isDir=true, one per volume.
+ */
+export async function listVolumes(): Promise<FileEntry[]> {
+  return invoke('list_volumes')
+}
+
+/**
  * Return metadata for a single file or directory.
  *
  * Tries the cache first; falls back to a live filesystem stat if not cached.
@@ -171,6 +180,10 @@ export async function getAppPrefs(): Promise<AppPrefs> {
  *
  * @throws string — if the database write fails
  */
+export async function getAppPref(key: string): Promise<string | null> {
+  return invoke('get_app_pref', { key })
+}
+
 export async function saveAppPref(key: string, value: string): Promise<void> {
   return invoke('save_app_pref', { key, value })
 }

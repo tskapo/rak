@@ -3,7 +3,7 @@
 // Persiste chaque changement via save_app_pref.
 // Délègue l'application du thème à theme.svelte.ts et la locale à i18n.svelte.ts.
 
-import { getAppPrefs, saveAppPref, type AppPrefs } from '$lib/tauri'
+import { getAppPrefs, getAppPref, saveAppPref, type AppPrefs } from '$lib/tauri'
 import { initLocale, type Locale } from '$lib/i18n.svelte'
 import { applyTheme, type Theme } from './theme.svelte'
 
@@ -70,6 +70,32 @@ export async function setUiScale(scale: number): Promise<void> {
   applyScale(scale)
   await saveAppPref('ui_scale', String(scale))
   if (prefs) prefs = { ...prefs, uiScale: scale }
+}
+
+// ── Favorites ─────────────────────────────────────────────────────────────────
+
+let favorites = $state<string[]>([])
+
+/** Load pinned folder paths from SQLite. Call once at startup. */
+export async function loadFavorites(): Promise<void> {
+  const raw = await getAppPref('favorites')
+  try { favorites = raw ? JSON.parse(raw) : [] } catch { favorites = [] }
+}
+
+/** All pinned folder paths. */
+export function getFavorites(): string[] { return favorites }
+
+/** Add a path to favorites (no-op if already present). */
+export async function addFavorite(path: string): Promise<void> {
+  if (favorites.includes(path)) return
+  favorites = [...favorites, path]
+  await saveAppPref('favorites', JSON.stringify(favorites))
+}
+
+/** Remove a path from favorites. */
+export async function removeFavorite(path: string): Promise<void> {
+  favorites = favorites.filter(p => p !== path)
+  await saveAppPref('favorites', JSON.stringify(favorites))
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
