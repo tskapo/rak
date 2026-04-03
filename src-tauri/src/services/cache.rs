@@ -148,17 +148,25 @@ pub async fn get_file(pool: &SqlitePool, path: &str) -> Result<Option<FileEntry>
     }))
 }
 
-/// Return the most recent `indexed_at` timestamp among direct children of `dir_path`.
-/// Returns None if the directory has no cached entries.
+/// Return the most recent `indexed_at` timestamp for `dir_path`.
+///
+/// Checks both the direct children of `dir_path` AND the directory entry
+/// itself. The directory entry is written by the indexer at the end of every
+/// scan (even for empty directories) specifically to record that the scan ran.
+/// Without this, an empty directory would always appear stale (no children →
+/// MAX returns NULL), causing an infinite rescan loop.
 pub async fn get_dir_indexed_at(pool: &SqlitePool, dir_path: &str) -> Result<Option<i64>, sqlx::Error> {
     let pattern = format!("{}/%", dir_path);
     let exclude  = format!("{}/%/%", dir_path);
 
     let row = sqlx::query(
-        "SELECT MAX(indexed_at) AS ts FROM file_cache WHERE path LIKE ? AND path NOT LIKE ?",
+        "SELECT MAX(indexed_at) AS ts FROM file_cache
+         WHERE (path LIKE ? AND path NOT LIKE ?)
+            OR path = ?",
     )
     .bind(&pattern)
     .bind(&exclude)
+    .bind(dir_path)
     .fetch_one(pool)
     .await?;
 

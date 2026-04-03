@@ -137,6 +137,22 @@ async fn walk_and_index(pool: SqlitePool, root: String, app_handle: AppHandle) {
         }
     }
 
+    // Mark this directory as indexed (even if empty) so get_dir_indexed_at
+    // returns a fresh timestamp and does not trigger another scan immediately.
+    let dir_name = std::path::Path::new(&root)
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| root.clone());
+    let dir_entry = cache::FileEntry {
+        path:        root.clone(),
+        name:        dir_name,
+        is_dir:      true,
+        size:        None,
+        modified_at: None,
+        mime_type:   None,
+    };
+    let _ = cache::upsert_file(&pool, &dir_entry, indexed_at).await;
+
     // Final emit for this directory.
     let _ = app_handle.emit(
         "indexer:progress",
