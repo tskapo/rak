@@ -10,7 +10,10 @@
   import { loadDiskLabel, getDiskLabelFor, saveDiskLabelFor } from '../../stores/diskLabels.svelte'
   import { getFavorites, addFavorite, removeFavorite } from '../../stores/appPrefs.svelte'
   import { getCurrentPath, navigate } from '../../stores/navigation.svelte'
-  import { t } from '$lib/i18n.svelte'
+  import { t }       from '$lib/i18n.svelte'
+  import LangPicker  from '../ui/LangPicker.svelte'
+  import { goto }    from '$app/navigation'
+  import { getPrefs, setUiScale } from '../../stores/appPrefs.svelte'
 
   // ── Volumes ───────────────────────────────────────────────────────────────
   let volumes = $state<FileEntry[]>([])
@@ -166,8 +169,30 @@
 
     {#if showRecents}
       <RecentList limit={8} activePath={getCurrentPath()} />
+      <button class="sb-more-btn" onclick={() => goto('/recent')}>
+        {t('sidebar.recents')} →
+      </button>
     {/if}
   </section>
+
+  <!-- ── Footer: scale slider + language picker ───────────────────────────── -->
+  <div class="sb-footer">
+    <div class="sb-scale">
+      <span class="sb-scale-label">A</span>
+      <input
+        type="range"
+        min="0.8"
+        max="1.4"
+        step="0.05"
+        value={getPrefs()?.uiScale ?? 1}
+        oninput={(e) => setUiScale(parseFloat((e.currentTarget as HTMLInputElement).value))}
+        class="sb-scale-slider"
+        title="UI scale"
+      />
+      <span class="sb-scale-label sb-scale-lg">A</span>
+    </div>
+    <LangPicker />
+  </div>
 
 </aside>
 
@@ -322,4 +347,51 @@
     flex-shrink:   0;
   }
   .sb-btn:hover { background: var(--bg-hover); }
+
+  .sb-more-btn {
+    display:     block;
+    width:       100%;
+    background:  none;
+    border:      none;
+    text-align:  left;
+    font-family: inherit;
+    font-size:   var(--font-size-xs);
+    color:       var(--accent);
+    padding:     0.1rem var(--space-sm);
+    cursor:      pointer;
+  }
+  .sb-more-btn:hover { text-decoration: underline; }
+
+  /* Footer */
+  .sb-footer {
+    margin-top:     auto;
+    padding:        var(--space-xs) var(--space-sm);
+    border-top:     1px solid var(--border);
+    flex-shrink:    0;
+    display:        flex;
+    flex-direction: column;
+    gap:            var(--space-xs);
+  }
+
+  /* Scale slider */
+  .sb-scale {
+    display:     flex;
+    align-items: center;
+    gap:         var(--space-xs);
+  }
+
+  .sb-scale-label {
+    font-size:   0.65rem;
+    color:       var(--text-muted);
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  .sb-scale-lg { font-size: 1rem; }
+
+  .sb-scale-slider {
+    flex:         1;
+    accent-color: var(--accent);
+    cursor:       pointer;
+  }
 </style>
