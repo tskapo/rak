@@ -84,6 +84,7 @@ pub fn run() {
             // Tags + disk labels
             commands::tags::get_tags,
             commands::tags::create_tag,
+            commands::tags::update_tag,
             commands::tags::delete_tag,
             commands::tags::get_file_tags,
             commands::tags::set_file_tags,

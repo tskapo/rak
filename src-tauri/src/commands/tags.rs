@@ -34,6 +34,19 @@ pub async fn create_tag(
         .map_err(|e| e.to_string())
 }
 
+/// Update the `name` and `color` of an existing tag.
+#[tauri::command]
+pub async fn update_tag(
+    id:    i64,
+    name:  String,
+    color: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    cache::update_tag(&state.db, id, &name, &color)
+        .await
+        .map_err(|e| e.to_string())
+}
+
 /// Delete the tag with the given `id`.
 ///
 /// Cascades automatically to all `file_tags` rows (via SQLite `ON DELETE CASCADE`).

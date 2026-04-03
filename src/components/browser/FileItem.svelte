@@ -4,7 +4,9 @@
 
 <script lang="ts">
   import type { FileEntry, Tag } from '$lib/tauri'
-  import TagBadge from '../ui/TagBadge.svelte'
+  import TagBadge  from '../ui/TagBadge.svelte'
+  import TagPicker from '../ui/TagPicker.svelte'
+  import { t }     from '$lib/i18n.svelte'
 
   interface Props {
     entry:      FileEntry
@@ -72,6 +74,26 @@
       onpreview?.(entry)
     }
   }
+
+  // ── Context menu ──────────────────────────────────────────────────────────
+  let menuX        = $state(0)
+  let menuY        = $state(0)
+  let showMenu     = $state(false)
+  let showTagPicker = $state(false)
+
+  function handleContextMenu(e: MouseEvent) {
+    e.preventDefault()
+    menuX    = e.clientX
+    menuY    = e.clientY
+    showMenu = true
+  }
+
+  function closeMenu() { showMenu = false }
+
+  function openTagPicker() {
+    showMenu      = false
+    showTagPicker = true
+  }
 </script>
 
 <!-- svelte-ignore a11y_interactive_supports_focus -->
@@ -83,6 +105,7 @@
   onclick={() => onclick?.(entry)}
   ondblclick={() => ondblclick?.(entry)}
   onkeydown={handleKeydown}
+  oncontextmenu={handleContextMenu}
 >
   <span class="file-icon" style:color={iconColor}>{icon}</span>
 
@@ -100,6 +123,18 @@
   <span class="file-date">{formatDate(entry.modifiedAt)}</span>
   <span class="file-type">{entry.mimeType?.split('/')[1] ?? (entry.isDir ? 'Folder' : '—')}</span>
 </div>
+
+{#if showMenu}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <div class="ctx-backdrop" role="presentation" onclick={closeMenu}></div>
+  <menu class="ctx-menu" style:left="{menuX}px" style:top="{menuY}px">
+    <li><button class="ctx-item" onclick={openTagPicker}>{t('actions.tag')}</button></li>
+  </menu>
+{/if}
+
+{#if showTagPicker}
+  <TagPicker {entry} x={menuX} y={menuY} onclose={() => { showTagPicker = false }} />
+{/if}
 
 <style>
   .file-item {
@@ -152,4 +187,39 @@
   .file-size { width: 4.375rem; text-align: right; }
   .file-date { width: 7.5rem; }
   .file-type { width: 5.625rem; color: var(--text-muted); }
+
+  /* Context menu */
+  .ctx-backdrop {
+    position: fixed;
+    inset:    0;
+    z-index:  100;
+  }
+
+  .ctx-menu {
+    position:      fixed;
+    z-index:       101;
+    margin:        0;
+    padding:       var(--space-xs) 0;
+    list-style:    none;
+    background:    var(--bg-toolbar);
+    border:        1px solid var(--border);
+    border-radius: var(--radius-sm);
+    box-shadow:    0 4px 12px rgba(0,0,0,.18);
+    min-width:     8rem;
+  }
+
+  .ctx-item {
+    display:     block;
+    width:       100%;
+    padding:     var(--space-xs) var(--space-sm);
+    background:  none;
+    border:      none;
+    text-align:  left;
+    font-family: inherit;
+    font-size:   var(--font-size-base);
+    color:       var(--text);
+    cursor:      pointer;
+  }
+
+  .ctx-item:hover { background: var(--bg-hover); }
 </style>

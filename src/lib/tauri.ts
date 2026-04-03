@@ -197,6 +197,15 @@ export async function createTag(name: string, color: string): Promise<Tag> {
 }
 
 /**
+ * Update the name and color of an existing tag.
+ *
+ * @throws string — if the name already exists (UNIQUE constraint)
+ */
+export async function updateTag(id: number, name: string, color: string): Promise<void> {
+  return invoke('update_tag', { id, name, color })
+}
+
+/**
  * Delete the tag with the given `id`.
  *
  * Cascades automatically to all file–tag associations.

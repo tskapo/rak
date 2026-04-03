@@ -5,8 +5,9 @@
 
 import {
   getTags,
-  createTag as apiCreateTag,
-  deleteTag as apiDeleteTag,
+  createTag  as apiCreateTag,
+  updateTag  as apiUpdateTag,
+  deleteTag  as apiDeleteTag,
   getFileTags as apiGetFileTags,
   setFileTags as apiSetFileTags,
   type Tag,
@@ -34,6 +35,20 @@ export async function createTag(name: string, color: string): Promise<Tag> {
   const tag = await apiCreateTag(name, color)
   allTags   = [...allTags, tag].sort((a, b) => a.name.localeCompare(b.name))
   return tag
+}
+
+/** Update a tag's name and color, reflecting the change immediately in all caches. */
+export async function updateTag(id: number, name: string, color: string): Promise<void> {
+  await apiUpdateTag(id, name, color)
+  allTags = allTags
+    .map(t => t.id === id ? { ...t, name, color } : t)
+    .sort((a, b) => a.name.localeCompare(b.name))
+  fileTags = Object.fromEntries(
+    Object.entries(fileTags).map(([path, tags]) => [
+      path,
+      tags.map(t => t.id === id ? { ...t, name, color } : t),
+    ])
+  )
 }
 
 /** Delete a tag by id, removing it from all cached file associations. */

@@ -394,6 +394,18 @@ pub async fn create_tag(pool: &SqlitePool, name: &str, color: &str) -> Result<Ta
     Ok(Tag { id, name: name.to_string(), color: color.to_string() })
 }
 
+/// Update a tag's name and color.
+pub async fn update_tag(pool: &SqlitePool, id: i64, name: &str, color: &str) -> Result<(), sqlx::Error> {
+    sqlx::query("UPDATE tags SET name = ?, color = ? WHERE id = ?")
+        .bind(name)
+        .bind(color)
+        .bind(id)
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}
+
 /// Delete a tag — cascades automatically to file_tags.
 pub async fn delete_tag(pool: &SqlitePool, id: i64) -> Result<(), sqlx::Error> {
     sqlx::query("DELETE FROM tags WHERE id = ?")
