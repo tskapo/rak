@@ -21,10 +21,9 @@
   $effect(() => {
     const path = getCurrentPath()
     if (!path) return
-    // Await folder prefs first so sort settings are ready before the list renders.
-    loadFolderPrefs(path)
-      .catch(console.error)
-      .then(() => loadDir(path).catch(console.error))
+    // Fire both in parallel — viewMode is now global so no ordering dependency.
+    loadFolderPrefs(path).catch(console.error)
+    loadDir(path).catch(console.error)
   })
 
   // ── Preview panel ─────────────────────────────────────────────────────────

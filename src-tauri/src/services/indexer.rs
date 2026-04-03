@@ -72,7 +72,12 @@ async fn walk_and_index(pool: SqlitePool, root: String, app_handle: AppHandle) {
 
     let mut reader = match tokio::fs::read_dir(&root).await {
         Ok(r) => r,
-        Err(_) => return, // unreadable (permissions, disconnected share, etc.)
+        Err(e) => {
+            eprintln!("[indexer] cannot read {root}: {e}");
+            // Emit so the frontend clears the "indexing…" spinner even on failure.
+            let _ = app_handle.emit("indexer:progress", IndexProgress { path: root, files_indexed: 0 });
+            return;
+        }
     };
 
     let mut files_indexed = 0u64;
